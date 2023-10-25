@@ -1,0 +1,17 @@
+{
+  "name": "htmlody-template",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "serve": "bun ./index.ts"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@bnk/core": "0.2.12"
+  }
+}

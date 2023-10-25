@@ -1,0 +1,118 @@
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: currentColor;
+}
+
+body {
+  margin: 0;
+  line-height: 1.5;
+  font-family: system-ui, sans-serif;
+  font-size: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #fff;
+  color: #000;
+}
+
+
+html, body {
+  scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+h1 {
+  font-size: 2em;
+  line-height: 1.25;
+}
+h2 {
+  font-size: 1.5em;
+  line-height: 1.4;
+}
+h3 {
+  font-size: 1.25em;
+  line-height: 1.5;
+}
+h4 {
+  font-size: 1em;
+  line-height: 1.6;
+}
+h5 {
+  font-size: 0.875em;
+  line-height: 1.7;
+}
+h6 {
+  font-size: 0.75em;
+  line-height: 1.8;
+}
+
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  padding: 0;
+  line-height: inherit;
+  color: inherit;
+  font-family: inherit;
+  font-size: 100%;
+  margin: 0;
+}
+
+img,
+embed,
+object,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+img {
+  border-style: none; /* Remove border from images */
+}
+
+pre,
+code,
+kbd,
+samp {
+  font-family: monospace;
+  font-size: 1em;
+}
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+table {
+  border-collapse: collapse;
+}
