@@ -1,62 +1,28 @@
-import * as bnk from '@bnk/core';
-import { Routes } from '@bnk/core/modules/server';
-import { getPage } from './page-config';
+import { middleware } from './middleware';
+import {
+  Routes,
+  htmlRes,
+  jsonRes,
+  redirectRes,
+} from '@bnk/core/modules/server';
+import { getPage } from './home-page-config';
 import { encodeCookie } from '@bnk/core/modules/cookies';
 import {
   authenticateUserJwt,
   createUser,
-  getTokenExpireEpoch,
-  getUser,
+  getUserById,
 } from './auth';
 import { db } from './db';
-import { createToken } from '@bnk/core/modules/auth';
+import { htmlFactory, cc } from '@bnk/core/modules/htmlody';
 
 let count = 0;
 
-export type UserJWTPayload = {
-  userId: string;
-  username: string;
-};
-
-const jwtSecret = 'SQ43KRet';
-const jwtFactory = bnk.jwt.jwtBack<UserJWTPayload>({
-  factorySignSecret: jwtSecret,
-  handlers: bnk.jwt.createJwtFileHandlers('./jwts.json'),
-});
-
-const headersToObj = (headers: Headers) => {
-  const obj: Record<string, string> = {};
-
-  for (const [key, value] of headers.entries()) {
-    obj[key] = value;
-  }
-
-  return obj;
-};
-
-export const createSecurityToken = async (
-  tokenValidTime: number = 1000 * 60 * 60 * 24, // 24 hours
-) => {
-  const salt = bnk.uuid.v7();
-  const { uuid: tokenId, timestamp } = bnk.uuid.v7({
-    returnTimestamp: true,
-  });
-  const securityToken = await createToken(tokenId, salt);
-  const tokenExpireEpoch = getTokenExpireEpoch(timestamp, tokenValidTime);
-
-  return {
-    securityToken,
-    tokenId,
-    tokenExpireEpoch,
-  };
-};
-
-export const routes: Routes = {
+export const routes: Routes<typeof middleware> = {
   '/': {
-    GET: (request) => {
+    GET: (request, {}) => {
       count++;
 
-      const htmlody = bnk.htmlody.htmlFactory(
+      const htmlody = htmlFactory(
         {
           title: 'HTMLody template',
         },
@@ -67,25 +33,21 @@ export const routes: Routes = {
       );
       const html = htmlody.getHtmlOut();
 
-      return bnk.server.htmlRes(html);
+      return htmlRes(html);
     },
   },
   '/login': {
     POST: async (request) => {
       try {
-        console.log({ message: 'at login' });
 
         const formData = await request.formData();
         const username = formData.get('username') as string;
         const password = formData.get('password') as string;
 
-        console.log({ headers: headersToObj(request.headers) });
-
         const authResult = await authenticateUserJwt(db, username, password);
-        console.log(authResult);
 
         if (!authResult?.user) {
-          return bnk.server.jsonRes({
+          return jsonRes({
             message: 'invalid username or password',
           });
         }
@@ -98,10 +60,7 @@ export const routes: Routes = {
           sameSite: 'Strict',
         });
 
-        console.log(jwtCookie);
-
-        // const response = bnk.server.redirectRes('/account');
-        const response = bnk.server.htmlRes(`<div>
+        const response = htmlRes(`<div>
           <h1>Logged in</h1>
           <a href="/account">Go to account</a>
           </div>
@@ -112,52 +71,41 @@ export const routes: Routes = {
         return response;
       } catch (e) {
         console.error(e);
-        return bnk.server.jsonRes({
+        return jsonRes({
           message: 'We ran into an error on our end. Please try again later.',
         });
       }
     },
   },
   '/account': {
-    GET: async (request) => {
-      const jwtCookie = request.headers.get('Cookie');
+    GET: async (_, { auth }) => {
+      if (auth === null) redirectRes('/login');
+      const jwtVerification = await auth?.verifyJwt();
 
-      const cookieFactory = bnk.cookies.createServerCookieFactory('jwt', {
-        request,
-      });
-
-      console.log(cookieFactory.getCookie());
-
-      console.log(jwtCookie);
-      if (!jwtCookie) {
-        return bnk.server.redirectRes('/login');
-      }
-
-      const token = jwtCookie.split('jwt=')[1];
-      const jwtVerification = await jwtFactory.verifyJwt(token);
-      if (!jwtVerification.payload) {
-        return bnk.server.redirectRes('/login');
+      if (!jwtVerification?.payload) {
+        return redirectRes('/login');
       }
 
       const { userId } = jwtVerification.payload;
-      const user = getUser(db, userId);
+      const user = getUserById(db, userId);
+
 
       if (!user) {
-        return bnk.server.redirectRes('/login');
+        return redirectRes('/login');
       }
 
-      const htmlody = bnk.htmlody.htmlFactory(
+      const htmlody = htmlFactory(
         {
           title: 'HTMLody template',
         },
         {
           account: {
             tag: 'div',
-            cr: bnk.htmlody.cc(['flex', 'flex-col', 'p-8', 'items-center']),
+            cr: cc(['flex', 'flex-col', 'p-8', 'items-center']),
             children: {
               username: {
                 tag: 'div',
-                content: user.username,
+                content: 'Username: ' + user.username,
               },
             },
           },
@@ -166,7 +114,7 @@ export const routes: Routes = {
       );
       const html = htmlody.getHtmlOut();
 
-      return bnk.server.htmlRes(html);
+      return htmlRes(html);
     },
   },
   '/register': {
@@ -182,7 +130,7 @@ export const routes: Routes = {
       <button type="submit">Register</button>
     </form>
   `;
-      return bnk.server.htmlRes(html);
+      return htmlRes(html);
     },
 
     POST: async (request) => {
@@ -192,15 +140,13 @@ export const routes: Routes = {
       const verifyPassword = formData.get('verifyPassword') as string;
 
       if (password !== verifyPassword) {
-        return bnk.server.htmlRes(
-          '<div>Passwords do not match. Please try again.</div>',
-        );
+        return htmlRes('<div>Passwords do not match. Please try again.</div>');
       }
 
       // Check if user already exists
-      const existingUser = getUser(db, username);
+      const existingUser = getUserById(db, username);
       if (existingUser) {
-        return bnk.server.htmlRes(
+        return htmlRes(
           '<div>User already exists. Choose a different username.</div>',
         );
       }
@@ -213,11 +159,9 @@ export const routes: Routes = {
 
       if (user) {
         // Redirect to login or some other page after successful registration
-        return bnk.server.redirectRes('/login');
+        return redirectRes('/login');
       } else {
-        return bnk.server.htmlRes(
-          '<div>Registration failed. Please try again.</div>',
-        );
+        return htmlRes('<div>Registration failed. Please try again.</div>');
       }
     },
   },

@@ -1,4 +1,5 @@
 import * as bnk from '@bnk/core';
+import { v7 as uuid } from '@bnk/core/modules/uuid';
 import { jwtBack } from '@bnk/core/modules/jwt';
 import Database from 'bun:sqlite';
 import { createToken, verifyToken } from '@bnk/core/modules/auth';
@@ -33,9 +34,9 @@ export async function createUser(
   },
 ) {
   try {
-    const salt = bnk.uuid.v7();
+    const salt = uuid();
     const passwordHash = await createToken(password, salt);
-    const userId = bnk.uuid.v7();
+    const userId = uuid();
 
     const params = {
       $id: userId,
@@ -51,8 +52,8 @@ export async function createUser(
     ).run(params);
 
     console.info('User inserted:', userId);
-    
-    return getUser(db, username);
+
+    return getUserById(db, username);
   } catch (e) {
     console.error({ e, note: 'user creation error' });
     return null;
@@ -64,7 +65,7 @@ export async function loginUser(
   username: string,
   password: string,
 ): Promise<{ user: User; token: string } | null> {
-  const existingUser = getUser(db, username);
+  const existingUser = getUserById(db, username);
   if (!existingUser) {
     console.info('User does not exist:', username);
     return null;
@@ -98,7 +99,7 @@ export async function authenticateUserJwt(
   username: string,
   password: string,
 ) {
-  const existingUser = getUser(db, username);
+  const existingUser = getUserByUsername(db, username);
 
   if (!existingUser) {
     console.info('User does not exist:', username);
@@ -128,7 +129,10 @@ export async function authenticateUserJwt(
   return { user: existingUser, token };
 }
 
-export const getUser = (db: Database, username: string): User | null => {
+export const getUserByUsername = (
+  db: Database,
+  username: string,
+): User | null => {
   return (
     (db
       .query(
@@ -138,6 +142,20 @@ export const getUser = (db: Database, username: string): User | null => {
       )
       .get({
         $username: username,
+      }) as User) || null
+  );
+};
+
+export const getUserById = (db: Database, userId: string): User | null => {
+  return (
+    (db
+      .query(
+        `
+      SELECT * FROM users WHERE id = $userId
+  `,
+      )
+      .get({
+        $userId: userId,
       }) as User) || null
   );
 };
