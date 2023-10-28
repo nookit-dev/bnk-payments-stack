@@ -1,3 +1,4 @@
+import { registerPage } from './pages/register';
 import { middleware } from './middleware';
 import {
   Routes,
@@ -5,41 +6,35 @@ import {
   jsonRes,
   redirectRes,
 } from '@bnk/core/modules/server';
-import { getPage } from './home-page-config';
+import { homePage } from './pages/home';
 import { encodeCookie } from '@bnk/core/modules/cookies';
-import {
-  authenticateUserJwt,
-  createUser,
-  getUserById,
-} from './auth';
+import { authenticateUserJwt, createUser, getUserById } from './auth';
 import { db } from './db';
-import { htmlFactory, cc } from '@bnk/core/modules/htmlody';
+import { pageGenerator } from '@bnk/core/modules/htmlody';
+import { accountPage } from './pages/account';
+import { getLayout } from './components/layout';
 
 let count = 0;
+
+const htmlody = pageGenerator({
+  title: 'HTMLody template',
+});
 
 export const routes: Routes<typeof middleware> = {
   '/': {
     GET: (request, {}) => {
       count++;
 
-      const htmlody = htmlFactory(
-        {
-          title: 'HTMLody template',
-        },
-        getPage({
+      return htmlody.response(
+        homePage({
           countDisplay: `Count: ${count}`,
         }),
-        {},
       );
-      const html = htmlody.getHtmlOut();
-
-      return htmlRes(html);
     },
   },
   '/login': {
-    POST: async (request) => {
+    POST: async (request, { auth }) => {
       try {
-
         const formData = await request.formData();
         const username = formData.get('username') as string;
         const password = formData.get('password') as string;
@@ -60,11 +55,28 @@ export const routes: Routes<typeof middleware> = {
           sameSite: 'Strict',
         });
 
-        const response = htmlRes(`<div>
-          <h1>Logged in</h1>
-          <a href="/account">Go to account</a>
-          </div>
-          `);
+        const response = htmlody.response(
+          getLayout({
+            children: {
+              SECTION: {
+                tag: 'div',
+                children: {
+                  h1: {
+                    tag: 'h1',
+                    content: 'Logged in',
+                  },
+                  a: {
+                    tag: 'a',
+                    attributes: {
+                      href: '/account',
+                    },
+                    content: 'Go to account',
+                  },
+                },
+              },
+            },
+          }),
+        );
 
         response.headers.append('Set-Cookie', jwtCookie);
 
@@ -89,50 +101,21 @@ export const routes: Routes<typeof middleware> = {
       const { userId } = jwtVerification.payload;
       const user = getUserById(db, userId);
 
-
       if (!user) {
         return redirectRes('/login');
       }
 
-      const htmlody = htmlFactory(
-        {
-          title: 'HTMLody template',
-        },
-        {
-          account: {
-            tag: 'div',
-            cr: cc(['flex', 'flex-col', 'p-8', 'items-center']),
-            children: {
-              username: {
-                tag: 'div',
-                content: 'Username: ' + user.username,
-              },
-            },
-          },
-        },
-        {},
+      return htmlody.response(
+        accountPage({
+          username: user.username,
+        }),
       );
-      const html = htmlody.getHtmlOut();
-
-      return htmlRes(html);
     },
   },
   '/register': {
     GET: () => {
-      // Serve the registration page.
-      // This could be a simple HTML form that posts to '/register-action'.
-      // For simplicity, I'm just describing it, but you'd replace this with your actual registration page content.
-      const html = `
-    <form action="/register" method="post">
-      <input type="text" name="username" placeholder="Username" required>
-      <input type="password" name="password" placeholder="Password" required>
-      <input type="password" name="verifyPassword" placeholder="Password" required>
-      <button type="submit">Register</button>
-    </form>
-  `;
-      return htmlRes(html);
+      return htmlody.response(registerPage());
     },
-
     POST: async (request) => {
       const formData = await request.formData();
       const username = formData.get('username') as string;
@@ -143,7 +126,6 @@ export const routes: Routes<typeof middleware> = {
         return htmlRes('<div>Passwords do not match. Please try again.</div>');
       }
 
-      // Check if user already exists
       const existingUser = getUserById(db, username);
       if (existingUser) {
         return htmlRes(
@@ -151,14 +133,12 @@ export const routes: Routes<typeof middleware> = {
         );
       }
 
-      // Create the user
       const user = await createUser(db, {
         password,
         username,
       });
 
       if (user) {
-        // Redirect to login or some other page after successful registration
         return redirectRes('/login');
       } else {
         return htmlRes('<div>Registration failed. Please try again.</div>');
