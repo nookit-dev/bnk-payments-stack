@@ -1,5 +1,5 @@
 import type { CRNode, JsonHtmlNodeMap } from '@bnk/core/modules/htmlody';
-import { cc } from '@bnk/core/modules/htmlody';
+import { cc, children } from '@bnk/core/modules/htmlody';
 import { getLayout } from '../components/layout';
 
 const lastReset = new Date();
@@ -14,8 +14,8 @@ export const homePage = ({
       COUNTER: {
         tag: 'section',
         cr: cc(['flex', 'flex-col', 'justify-center', 'items-center', 'p-8']),
-        children: {
-          titleid: {
+        children: children([
+          {
             tag: 'h2',
             content: 'Counter',
             cr: cc(['text-3xl', 'font-bold', 'mb-4']),
@@ -23,7 +23,7 @@ export const homePage = ({
               itemprop: 'headline',
             },
           },
-          counter: {
+          {
             tag: 'p',
             content: countDisplay,
             cr: cc(['text-3xl', 'font-bold', 'mb-4']),
@@ -31,7 +31,8 @@ export const homePage = ({
               id: 'counter',
             },
           },
-          lastReset: {
+
+          {
             tag: 'div',
             children: {
               lastReset: {
@@ -48,7 +49,7 @@ export const homePage = ({
               id: 'last-reset',
             },
           },
-        },
+        ]),
       },
     },
   });
