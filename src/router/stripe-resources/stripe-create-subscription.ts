@@ -1,25 +1,28 @@
 import {
-  getUserById,
-  getSubscriptionByUserId,
-  getPlanById,
-  createSubscription,
   User,
+  createSubscription,
+  getPlanById,
+  getPlanByIdWithPrices,
+  getSubscriptionByUserId,
 } from '../../db/schema';
-import { createStripeSubscription } from '../../utils/stripe/api/create-subscription';
+import { createStripeSubscription } from '../../utils/stripe/api';
 import { PlanId } from '../../utils/stripe/plans';
 
-export async function stripeCreateSubscription(user: User) {
-
+export async function stripeCreateSubscriptionResource(user: User) {
   const subscription = await getSubscriptionByUserId(user.id);
-  if (subscription?.id) return redirect('/account');
+
+  // if (subscription?.id) return redirect('/account');
+
   if (!user.customerId) throw new Error('Unable to find Customer ID.');
 
   // Get client's currency and Free Plan price ID.
   // const currency = getDefaultCurrency(request);
-  const freePlan = await getPlanById(PlanId.FREE, { prices: true });
+  const freePlan = await getPlanByIdWithPrices(PlanId.FREE);
+
   const freePlanPrice = freePlan?.prices.find(
-    (price) => price.interval === 'year' && price.currency === currency,
+    (price) => price.interval === 'year', // && price.currency === currency,
   );
+
   if (!freePlanPrice) throw new Error('Unable to find Free Plan price.');
 
   // Create Stripe Subscription.
@@ -32,7 +35,6 @@ export async function stripeCreateSubscription(user: User) {
 
   // Store Subscription into database.
   const storedSubscription = await createSubscription({
-
     id: newSubscription.id,
     userId: user.id,
     planId: String(newSubscription.items.data[0].plan.product),
@@ -45,5 +47,7 @@ export async function stripeCreateSubscription(user: User) {
   });
   if (!storedSubscription) throw new Error('Unable to create Subscription.');
 
-  return redirect('/account');
+  return storedSubscription;
+
+  // return redirect('/account');
 }

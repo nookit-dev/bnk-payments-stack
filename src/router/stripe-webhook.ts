@@ -1,10 +1,13 @@
-// Required for an enhanced experience with Stripe Event Types.
-// More info: https://bit.ly/3KlNXLs
-/// <reference types="stripe-event-types" />
-
-import Stripe from 'stripe';
-import { deleteSubscriptionById, getSubscriptionById, getUserByCustomerId, updateSubscriptionByUserId } from '../db/schema';
-import { retrieveStripeSubscription } from '../utils/stripe/api/retrieve-subscription';
+import { jsonRes } from '@bnk/core/modules/server';
+import { endpointSecret } from '../config';
+import {
+  deleteSubscriptionById,
+  getSubscriptionById,
+  getUserByCustomerId,
+  updateSubscriptionByUserId,
+} from '../db/schema';
+import { retrieveStripeSubscription } from '../utils/stripe/api';
+import { PlanId } from '../utils/stripe/plans';
 import { stripe } from '../utils/stripe/stripe-config';
 
 /**
@@ -16,22 +19,17 @@ async function getStripeEvent(request: Request) {
     const signature = request.headers.get('stripe-signature');
     if (!signature) throw new Error('Missing Stripe signature.');
 
-    const ENDPOINT_SECRET =
-      process.env.NODE_ENV === 'development'
-        ? process.env.DEV_STRIPE_WEBHOOK_ENDPOINT
-        : process.env.PROD_STRIPE_WEBHOOK_ENDPOINT;
-
     const payload = await request.text();
     const event = stripe.webhooks.constructEvent(
       payload,
       signature,
-      ENDPOINT_SECRET,
-    ) as Stripe.DiscriminatedEvent;
+      endpointSecret,
+    );
 
     return event;
   } catch (err: unknown) {
-    console.log(err);
-    return json({}, { status: 400 });
+    console.error(err);
+    return jsonRes({}, { status: 400 });
   }
 }
 
@@ -64,7 +62,7 @@ export async function stripeWebhook(request: Request) {
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
         });
 
-        return json({}, { status: 200 });
+        return jsonRes({}, { status: 200 });
       }
 
       // Occurs whenever a subscription changes (e.g. plan switch).
@@ -89,7 +87,9 @@ export async function stripeWebhook(request: Request) {
           .filter((item) => item !== undefined);
 
         if (freeSubscriptions[0]) {
-          await stripe.subscriptions.del(freeSubscriptions[0].subscription);
+          // await stripe.subscriptions.deleteDiscount(freeSubscriptions[0].subscription);
+          await stripe.subscriptions.cancel(freeSubscriptions[0].subscription);
+          //   await stripe.subscriptions.del(freeSubscriptions[0].subscription);
         }
 
         // Update database subscription.
@@ -105,7 +105,7 @@ export async function stripeWebhook(request: Request) {
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
         });
 
-        return json({}, { status: 200 });
+        return jsonRes({}, { status: 200 });
       }
 
       // Occurs whenever a customer’s subscription ends.
@@ -120,15 +120,15 @@ export async function stripeWebhook(request: Request) {
           await deleteSubscriptionById(subscription.id);
         }
 
-        return json({}, { status: 200 });
+        return jsonRes({}, { status: 200 });
       }
     }
   } catch (err: unknown) {
     console.log(err);
-    return json({}, { status: 400 });
+    return jsonRes({}, { status: 400 });
   }
 
   // We'll return a 200 status code for all other events.
   // A `501 Not Implemented` or any other status code could be returned.
-  return json({}, { status: 200 });
+  return jsonRes({}, { status: 200 });
 }

@@ -91,6 +91,29 @@ export const getPlanById = (id: Plan['id']): Plan | null => {
   );
 };
 
+export type PlanWithPrices = Plan & {
+  prices: Price[];
+};
+
+export const getPlanByIdWithPrices = (
+  id: Plan['id'],
+): PlanWithPrices | null => {
+  const plan: Plan | null = db
+    .query(`SELECT * FROM plan WHERE id = $id`)
+    .get({ $id: id }) as Plan | null;
+
+  if (!plan) return null;
+
+  const prices: Price[] = db
+    .query(`SELECT * FROM price WHERE planId = $id`)
+    .all({ $id: id }) as Price[];
+
+  return {
+    ...plan,
+    prices,
+  };
+};
+
 export const getAllPlans = (): Plan[] => {
   return db.query(`SELECT * FROM plan`).all() as Plan[];
 };
@@ -122,7 +145,7 @@ type CreateUpdateSubscription = Omit<Subscription, 'createdAt' | 'updatedAt'>;
 
 export const createSubscription = (
   subscription: CreateUpdateSubscription,
-): void => {
+): Subscription | null => {
   const now = new Date().toISOString();
 
   // Construct the SQL query
@@ -131,12 +154,24 @@ export const createSubscription = (
       VALUES ($id, $userId, $planId, $priceId, $interval, $status, $currentPeriodStart, $currentPeriodEnd, $cancelAtPeriodEnd, $createdAt, $updatedAt);
     `;
 
-  // Execute the query
-  db.query(sql).run({
-    ...subscription,
-    $createdAt: now,
-    $updatedAt: now,
-  });
+  try {
+    // Execute the insert query
+    db.query(sql).run({
+      ...subscription,
+      $createdAt: now,
+      $updatedAt: now,
+    });
+
+    // Fetch and return the newly created subscription
+    const newSubscription = getSubscriptionById(subscription.id);
+    if (!newSubscription) {
+      throw new Error('Failed to fetch the newly created subscription.');
+    }
+    return newSubscription;
+  } catch (e) {
+    console.error(e);
+    return null; // Return null if there was an error
+  }
 };
 
 export const deleteSubscriptionById = (id: Subscription['id']): void => {

@@ -1,15 +1,16 @@
-import { db } from '../../db/db';
-import { User, getUserById } from '../../db/schema';
-import { createStripeCustomerPortalSession } from '../../utils/stripe/api/create-customer-portal';
+import { User } from '../../db/schema';
+import { createStripeCustomerPortalSession } from '../../utils/stripe/api';
 
-export async function stripeCreateCustomerPortal(user: User) {
+export async function stripeCreateCustomerPortalResource(
+  user: User,
+): Promise<string | null> {
   // Redirect to Customer Portal.
   if (user.customerId) {
     const customerPortalUrl = await createStripeCustomerPortalSession(
       user.customerId,
     );
-    return redirect(customerPortalUrl);
+    return customerPortalUrl;
   }
 
-  return json({}, { status: 400 });
+  return null;
 }

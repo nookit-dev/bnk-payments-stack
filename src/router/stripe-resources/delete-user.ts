@@ -1,7 +1,7 @@
 import { User, deleteUserById } from '../../db/schema';
-import { deleteStripeCustomer } from '../../utils/stripe/api/delete-customer';
+import { deleteStripeCustomer } from '../../utils/stripe/api';
 
-export const deleteUser = async (user: User) => {
+export const deleteUserResource = async (user: User) => {
   // Delete user from database.
   await deleteUserById(user.id);
 
