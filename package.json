@@ -14,7 +14,8 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@bnk/core": "0.2.13"
+    "@bnk/core": "0.2.13",
+    "stripe": "^14.2.0"
   },
   "prettier": {
     "semi": true,

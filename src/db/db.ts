@@ -7,7 +7,7 @@ db.query(
       CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY UNIQUE,
           username TEXT UNIQUE,
-          password_hash TEXT,
+          passwordHash TEXT,
           salt TEXT UNIQUE
       )
   `,

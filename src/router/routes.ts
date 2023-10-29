@@ -1,18 +1,19 @@
-import { registerPage } from './pages/register';
-import { middleware } from './middleware';
+import { encodeCookie } from '@bnk/core/modules/cookies';
+import { pageGenerator } from '@bnk/core/modules/htmlody';
 import {
   Routes,
   htmlRes,
   jsonRes,
   redirectRes,
 } from '@bnk/core/modules/server';
-import { homePage } from './pages/home';
-import { encodeCookie } from '@bnk/core/modules/cookies';
-import { authenticateUserJwt, createUser, getUserById } from './auth';
-import { db } from './db';
-import { pageGenerator } from '@bnk/core/modules/htmlody';
-import { accountPage } from './pages/account';
-import { getLayout } from './components/layout';
+import { getLayout } from '../components/layout';
+import { db } from '../db/db';
+import { middleware } from '../middleware';
+import { accountPage } from '../pages/account';
+import { homePage } from '../pages/home';
+import { registerPage } from '../pages/register';
+import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
+import { getUserById } from '../db/schema';
 
 let count = 0;
 
@@ -99,7 +100,7 @@ export const routes: Routes<typeof middleware> = {
       }
 
       const { userId } = jwtVerification.payload;
-      const user = getUserById(db, userId);
+      const user = getUserById(userId);
 
       if (!user) {
         return redirectRes('/login');
@@ -126,7 +127,7 @@ export const routes: Routes<typeof middleware> = {
         return htmlRes('<div>Passwords do not match. Please try again.</div>');
       }
 
-      const existingUser = getUserById(db, username);
+      const existingUser = getUserById(username);
       if (existingUser) {
         return htmlRes(
           '<div>User already exists. Choose a different username.</div>',
