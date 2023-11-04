@@ -1,4 +1,4 @@
-import type { CRNode, JsonHtmlNodeMap } from '@bnk/core/modules/htmlody';
+import type { CRNode, JsonHtmlNodeTree } from '@bnk/core/modules/htmlody';
 import { cc } from '@bnk/core/modules/htmlody';
 import { getLayout } from '../components/layout';
 
@@ -6,7 +6,7 @@ export const accountPage = ({
   username,
 }: {
   username: string;
-}): JsonHtmlNodeMap<CRNode> => {
+}): JsonHtmlNodeTree<CRNode> => {
   return getLayout({
     children: {
       COUNTER: {

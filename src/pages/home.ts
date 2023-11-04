@@ -1,4 +1,4 @@
-import type { CRNode, JsonHtmlNodeMap } from '@bnk/core/modules/htmlody';
+import type { CRNode, JsonHtmlNodeTree } from '@bnk/core/modules/htmlody';
 import { cc, children } from '@bnk/core/modules/htmlody';
 import { getLayout } from '../components/layout';
 
@@ -8,7 +8,7 @@ export const homePage = ({
   countDisplay,
 }: {
   countDisplay: string;
-}): JsonHtmlNodeMap<CRNode> => {
+}): JsonHtmlNodeTree<CRNode> => {
   return getLayout({
     children: {
       COUNTER: {

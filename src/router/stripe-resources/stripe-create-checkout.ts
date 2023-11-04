@@ -1,7 +1,4 @@
-import {
-  User,
-  getPlanByIdWithPrices
-} from '../../db/schema';
+import { User, price } from '../../db/schema';
 import { createStripeCheckoutSession } from '../../utils/stripe/api';
 
 type FormData = {
@@ -27,7 +24,10 @@ export async function processFormData(request: Request): Promise<FormData> {
   };
 }
 
-export async function stripeCreateCheckoutResource(user: User, request: Request) {
+export async function stripeCreateCheckoutResource(
+  user: User,
+  request: Request,
+) {
   if (!user.customerId) throw new Error('Unable to get Customer ID.');
 
   // Get form values.
@@ -35,9 +35,9 @@ export async function stripeCreateCheckoutResource(user: User, request: Request)
   // const defaultCurrency = getDefaultCurrency(request);
   const { planId, planInterval } = await processFormData(request);
 
-  // Get price ID for the requested plan.
-  const plan = await getPlanByIdWithPrices(planId);
-  const planPrice = plan?.prices.find(
+  const prices = price.readItemsWhere({ planId: planId });
+
+  const planPrice = prices.find(
     (price) => price.interval === planInterval, //  && price.currency === defaultCurrency,
   );
   if (!planPrice) throw new Error('Unable to find a Plan price.');

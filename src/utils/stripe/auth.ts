@@ -3,7 +3,7 @@ import { createToken, verifyToken } from '@bnk/core/modules/auth';
 import { jwtBack } from '@bnk/core/modules/jwt';
 import { v7 as uuid } from '@bnk/core/modules/uuid';
 import Database from 'bun:sqlite';
-import { User, getUserById, getUserByUsername } from '../../db/schema';
+import { User, user as userSchema } from '../../db/schema';
 
 export const jwtSecret = 'SQ43KRet';
 export const jwtFactory = jwtBack({
@@ -32,22 +32,18 @@ export async function createUser(
     const passwordHash = await createToken(password, salt);
     const userId = uuid();
 
-    const params = {
-      $id: userId,
-      $username: username,
-      $passwordHash: passwordHash,
-      $salt: salt,
-    };
-    db.query(
-      `
-        INSERT INTO users (id, username, passwordHash, salt)
-        VALUES ($id, $username, $passwordHash, $salt)
-      `,
-    ).run(params);
+    // TODO need to update schema to allow params to be set optional
+    // @ts-expect-error
+    userSchema.create({
+      id: userId,
+      username,
+      passwordHash,
+      salt,
+    });
 
     console.info('User inserted:', userId);
 
-    return getUserById(username);
+    return userSchema.readItemsWhere({ username })[0];
   } catch (e) {
     console.error({ e, note: 'user creation error' });
     return null;
@@ -59,7 +55,7 @@ export async function loginUser(
   username: string,
   password: string,
 ): Promise<{ user: User; token: string } | null> {
-  const existingUser = getUserById(username);
+  const existingUser = userSchema.readItemsWhere({ username })[0];
   if (!existingUser) {
     console.info('User does not exist:', username);
     return null;
@@ -93,7 +89,7 @@ export async function authenticateUserJwt(
   username: string,
   password: string,
 ) {
-  const existingUser = getUserByUsername(username);
+  const existingUser = userSchema.readItemsWhere({ username })[0];
 
   if (!existingUser) {
     console.info('User does not exist:', username);

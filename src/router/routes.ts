@@ -1,5 +1,9 @@
 import { encodeCookie } from '@bnk/core/modules/cookies';
-import { pageGenerator } from '@bnk/core/modules/htmlody';
+import {
+  classRecordPlugin,
+  htmlodyBuilder,
+  markdownPlugin,
+} from '@bnk/core/modules/htmlody';
 import {
   Routes,
   htmlRes,
@@ -8,25 +12,29 @@ import {
 } from '@bnk/core/modules/server';
 import { getLayout } from '../components/layout';
 import { db } from '../db/db';
+import { user as userSchema } from '../db/schema';
 import { middleware } from '../middleware';
 import { accountPage } from '../pages/account';
 import { homePage } from '../pages/home';
+import { loginPage } from '../pages/login';
 import { registerPage } from '../pages/register';
 import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
-import { getUserById } from '../db/schema';
+import { stripeWebhook } from './stripe-webhook';
+
+const plugins = [classRecordPlugin, markdownPlugin];
+
+const builder = htmlodyBuilder(plugins, {
+  title: 'BNK Template',
+});
 
 let count = 0;
-
-const htmlody = pageGenerator({
-  title: 'HTMLody template',
-});
 
 export const routes: Routes<typeof middleware> = {
   '/': {
     GET: (request, {}) => {
       count++;
 
-      return htmlody.response(
+      return builder.response(
         homePage({
           countDisplay: `Count: ${count}`,
         }),
@@ -34,6 +42,9 @@ export const routes: Routes<typeof middleware> = {
     },
   },
   '/login': {
+    GET: (request) => {
+      return builder.response(loginPage());
+    },
     POST: async (request, { auth }) => {
       try {
         const formData = await request.formData();
@@ -56,7 +67,7 @@ export const routes: Routes<typeof middleware> = {
           sameSite: 'Strict',
         });
 
-        const response = htmlody.response(
+        const response = builder.response(
           getLayout({
             children: {
               SECTION: {
@@ -92,21 +103,26 @@ export const routes: Routes<typeof middleware> = {
   },
   '/account': {
     GET: async (_, { auth }) => {
+      console.log({ auth });
       if (auth === null) redirectRes('/login');
       const jwtVerification = await auth?.verifyJwt();
+
+      console.log({
+        jwtVerification,
+      });
 
       if (!jwtVerification?.payload) {
         return redirectRes('/login');
       }
 
       const { userId } = jwtVerification.payload;
-      const user = getUserById(userId);
+      const user = userSchema.readById(userId);
 
       if (!user) {
         return redirectRes('/login');
       }
 
-      return htmlody.response(
+      return builder.response(
         accountPage({
           username: user.username,
         }),
@@ -115,19 +131,19 @@ export const routes: Routes<typeof middleware> = {
   },
   '/register': {
     GET: () => {
-      return htmlody.response(registerPage());
+      return builder.response(registerPage());
     },
     POST: async (request) => {
       const formData = await request.formData();
       const username = formData.get('username') as string;
       const password = formData.get('password') as string;
-      const verifyPassword = formData.get('verifyPassword') as string;
+      const confirmPassword = formData.get('confirmPassword') as string;
 
-      if (password !== verifyPassword) {
+      if (password !== confirmPassword) {
         return htmlRes('<div>Passwords do not match. Please try again.</div>');
       }
 
-      const existingUser = getUserById(username);
+      const existingUser = userSchema.readById(username);
       if (existingUser) {
         return htmlRes(
           '<div>User already exists. Choose a different username.</div>',
@@ -145,6 +161,9 @@ export const routes: Routes<typeof middleware> = {
         return htmlRes('<div>Registration failed. Please try again.</div>');
       }
     },
+  },
+  'stripe-webhook': {
+    POST: async (request) => stripeWebhook(request),
   },
   '^/assets/.+': {
     GET: (request) => {

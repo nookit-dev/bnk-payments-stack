@@ -1,10 +1,8 @@
 import { jsonRes } from '@bnk/core/modules/server';
 import { endpointSecret } from '../config';
 import {
-  deleteSubscriptionById,
-  getSubscriptionById,
-  getUserByCustomerId,
-  updateSubscriptionByUserId,
+  subscription as subscriptionSchema,
+  user as userSchema,
 } from '../db/schema';
 import { retrieveStripeSubscription } from '../utils/stripe/api';
 import { PlanId } from '../utils/stripe/plans';
@@ -45,13 +43,17 @@ export async function stripeWebhook(request: Request) {
         const subscriptionId = String(session.subscription);
 
         // Get user from database.
-        const user = await getUserByCustomerId(customerId);
+        // const user = await getUserByCustomerId(customerId);
+        const user = await userSchema.readItemsWhere({
+          customerId: customerId,
+        })[0];
         if (!user) throw new Error('User not found.');
 
         // Retrieve and update database subscription.
         const subscription = await retrieveStripeSubscription(subscriptionId);
-        await updateSubscriptionByUserId({
-          id: subscription.id,
+
+        subscriptionSchema.update(subscription.id, {
+          // id: subscription.id,
           userId: user.id,
           planId: String(subscription.items.data[0].plan.product),
           priceId: String(subscription.items.data[0].price.id),
@@ -59,7 +61,7 @@ export async function stripeWebhook(request: Request) {
           status: subscription.status,
           currentPeriodStart: subscription.current_period_start,
           currentPeriodEnd: subscription.current_period_end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
         });
 
         return jsonRes({}, { status: 200 });
@@ -71,7 +73,10 @@ export async function stripeWebhook(request: Request) {
         const customerId = String(subscription.customer);
 
         // Get user from database.
-        const user = await getUserByCustomerId(customerId);
+        // const user = await getUserByCustomerId(customerId);
+        const user = await userSchema.readItemsWhere({
+          customerId: customerId,
+        })[0];
         if (!user) throw new Error('User not found.');
 
         // Cancel free subscription if user has a paid one.
@@ -92,9 +97,8 @@ export async function stripeWebhook(request: Request) {
           //   await stripe.subscriptions.del(freeSubscriptions[0].subscription);
         }
 
-        // Update database subscription.
-        await updateSubscriptionByUserId({
-          id: subscription.id,
+        subscriptionSchema.update(subscription.id, {
+          // id: subscription.id,
           userId: user.id,
           planId: String(subscription.items.data[0].plan.product),
           priceId: String(subscription.items.data[0].price.id),
@@ -102,7 +106,7 @@ export async function stripeWebhook(request: Request) {
           status: subscription.status,
           currentPeriodStart: subscription.current_period_start,
           currentPeriodEnd: subscription.current_period_end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
         });
 
         return jsonRes({}, { status: 200 });
@@ -113,11 +117,14 @@ export async function stripeWebhook(request: Request) {
         const subscription = event.data.object;
 
         // Get database subscription.
-        const dbSubscription = await getSubscriptionById(subscription.id);
+        // const dbSubscription = await getSubscriptionById(subscription.id);
+        const dbSubscription = await subscriptionSchema.readById(
+          subscription.id,
+        );
 
         if (dbSubscription) {
           // Delete database subscription.
-          await deleteSubscriptionById(subscription.id);
+          await subscriptionSchema.deleteById(subscription.id);
         }
 
         return jsonRes({}, { status: 200 });
