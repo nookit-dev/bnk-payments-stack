@@ -22,9 +22,11 @@ export async function createUser(
   {
     username,
     password,
+    email,
   }: {
     username: string;
     password: string;
+    email: string;
   },
 ) {
   try {
@@ -39,6 +41,7 @@ export async function createUser(
       username,
       passwordHash,
       salt,
+      email,
     });
 
     console.info('User inserted:', userId);

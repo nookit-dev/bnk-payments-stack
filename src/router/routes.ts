@@ -19,6 +19,10 @@ import { homePage } from '../pages/home';
 import { loginPage } from '../pages/login';
 import { registerPage } from '../pages/register';
 import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
+import { createStripeCheckoutUrl } from '../utils/stripe/resources/create-stripe-checkout';
+import { stripeCreateCustomerRouteResource } from '../utils/stripe/resources/create-stripe-customer';
+import { stripeCreateCustomerPortalResource } from '../utils/stripe/resources/create-stripe-customer-portal';
+import { stripeCreateSubscriptionResource } from '../utils/stripe/resources/create-stripe-subscription';
 import { stripeWebhook } from './stripe-webhook';
 
 const plugins = [classRecordPlugin, markdownPlugin];
@@ -107,10 +111,6 @@ export const routes: Routes<typeof middleware> = {
       if (auth === null) redirectRes('/login');
       const jwtVerification = await auth?.verifyJwt();
 
-      console.log({
-        jwtVerification,
-      });
-
       if (!jwtVerification?.payload) {
         return redirectRes('/login');
       }
@@ -137,6 +137,8 @@ export const routes: Routes<typeof middleware> = {
       const formData = await request.formData();
       const username = formData.get('username') as string;
       const password = formData.get('password') as string;
+      const email = formData.get('email') as string;
+
       const confirmPassword = formData.get('confirmPassword') as string;
 
       if (password !== confirmPassword) {
@@ -153,6 +155,7 @@ export const routes: Routes<typeof middleware> = {
       const user = await createUser(db, {
         password,
         username,
+        email,
       });
 
       if (user) {
@@ -162,7 +165,153 @@ export const routes: Routes<typeof middleware> = {
       }
     },
   },
-  'stripe-webhook': {
+  '/create-stripe-checkout': {
+    POST: async (request, { auth }) => {
+      if (auth === null) redirectRes('/login');
+      const jwtVerification = await auth?.verifyJwt();
+
+      if (!jwtVerification?.payload) {
+        return redirectRes('/login');
+      }
+
+      const { userId } = jwtVerification.payload;
+      const user = userSchema.readById(userId);
+
+      if (!user) {
+        return redirectRes('/login');
+      }
+
+      const checkoutUrl = await createStripeCheckoutUrl(user, request);
+
+      return redirectRes(checkoutUrl);
+    },
+  },
+  '/create-stripe-customer-portal': {
+    POST: async (request, { auth }) => {
+      if (auth === null) redirectRes('/login');
+      const jwtVerification = await auth?.verifyJwt();
+
+      if (!jwtVerification?.payload) {
+        return redirectRes('/login');
+      }
+
+      const { userId } = jwtVerification.payload;
+      const user = userSchema.readById(userId);
+
+      if (!user) {
+        return redirectRes('/login');
+      }
+
+      const customerPortalUrl = await stripeCreateCustomerPortalResource(user);
+
+      if (!customerPortalUrl) {
+        return jsonRes(
+          {
+            message: 'Unable to create customer portal.',
+          },
+          { status: 400 },
+        );
+      }
+
+      return redirectRes(customerPortalUrl);
+    },
+  },
+  '/create-stripe-customer': {
+    POST: async (request, { auth }) => {
+      if (auth === null) redirectRes('/login');
+      const jwtVerification = await auth?.verifyJwt();
+
+      if (!jwtVerification?.payload) {
+        return redirectRes('/login');
+      }
+
+      const { userId } = jwtVerification.payload;
+      const user = userSchema.readById(userId);
+
+      if (!user) {
+        return redirectRes('/login');
+      }
+
+      await stripeCreateCustomerRouteResource({
+        email: user.email,
+        firstName: user.firstName,
+        id: user.id,
+        lastName: user.lastName,
+      });
+
+      return redirectRes('/account');
+    },
+  },
+  // '/create-stripe-price': {
+  //   POST: async (request, { auth }) => {
+  //     if (auth === null) redirectRes('/login');
+  //     const jwtVerification = await auth?.verifyJwt();
+
+  //     if (!jwtVerification?.payload) {
+  //       return redirectRes('/login');
+  //     }
+
+  //     const { userId } = jwtVerification.payload;
+  //     const user = userSchema.readById(userId);
+
+  //     if (!user) {
+  //       return redirectRes('/login');
+  //     }
+
+  //     return redirectRes('/account');
+  //   },
+  // },
+  '/create-stripe-subscription': {
+    POST: async (request, { auth }) => {
+      if (auth === null) redirectRes('/login');
+      const jwtVerification = await auth?.verifyJwt();
+
+      if (!jwtVerification?.payload) {
+        return redirectRes('/login');
+      }
+
+      const { userId } = jwtVerification.payload;
+      const user = userSchema.readById(userId);
+
+      if (!user) {
+        return redirectRes('/login');
+      }
+
+      const subscription = await stripeCreateSubscriptionResource(user);
+
+      return jsonRes(subscription, {
+        status: 200,
+      });
+
+      // return redirectRes('/account');
+    },
+  },
+
+  // '/create-stripe-product': {
+  //   POST: async (request, { auth }) => {
+  //     if (auth === null) redirectRes('/login');
+  //     const jwtVerification = await auth?.verifyJwt();
+
+  //     if (!jwtVerification?.payload) {
+  //       return redirectRes('/login');
+  //     }
+
+  //     const { userId } = jwtVerification.payload;
+  //     const user = userSchema.readById(userId);
+
+  //     const product = createStripeProduct({
+
+  //     })
+
+  //     // if (!user) {
+  //     //   return redirectRes('/login');
+  //     // }
+
+  //     // return redirectRes('/account');
+  //   },
+  // },
+
+  '/stripe-webhook': {
     POST: async (request) => stripeWebhook(request),
   },
   '^/assets/.+': {

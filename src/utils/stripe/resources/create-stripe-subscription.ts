@@ -1,17 +1,38 @@
+import type { Stripe } from 'stripe';
 import {
+  Price,
   User,
   price as priceSchema,
-  subscription as subscriptionSchema
-} from '../../db/schema';
-import { createStripeSubscription } from '../../utils/stripe/api';
-import { PlanId } from '../../utils/stripe/plans';
+  subscription as subscriptionSchema,
+} from '../../../db/schema.ts';
+import { PlanId } from '../plans.ts';
+import { stripe } from '../stripe-config';
 
-export async function stripeCreateSubscriptionResource(user: User) {
+export async function createStripeSubscription(
+  customerId: User['stripeCustomerId'],
+  price: Price['id'],
+  params?: Stripe.SubscriptionCreateParams,
+) {
+  if (!customerId || !price)
+    throw new Error(
+      'Missing required parameters to create Stripe Subscription.',
+    );
+
+  return stripe.subscriptions.create({
+    ...params,
+    customer: customerId,
+    items: [{ price }],
+  });
+}
+
+export async function stripeCreateSubscriptionResource(
+  user: Pick<User, 'id' | 'stripeCustomerId'>,
+) {
   const subscription = subscriptionSchema.readItemsWhere({
     userId: user.id,
   })[0];
 
-  if (!user.customerId) throw new Error('Unable to find Customer ID.');
+  if (!user.stripeCustomerId) throw new Error('Unable to find Customer ID.');
 
   const freePlanPrices = priceSchema.readItemsWhere({ planId: PlanId.FREE });
   const freePlanPrice = freePlanPrices.find(
@@ -22,14 +43,14 @@ export async function stripeCreateSubscriptionResource(user: User) {
 
   // Create Stripe Subscription.
   const newSubscription = await createStripeSubscription(
-    user.customerId,
+    user.stripeCustomerId,
     freePlanPrice.id,
   );
   if (!newSubscription)
     throw new Error('Unable to create Stripe Subscription.');
 
   // Store Subscription into database.
-  const storedSubscription = await subscriptionSchema.create({
+  const storedSubscription = subscriptionSchema.create({
     id: newSubscription.id,
     userId: user.id,
     planId: String(newSubscription.items.data[0].plan.product),
@@ -45,6 +66,4 @@ export async function stripeCreateSubscriptionResource(user: User) {
   if (!storedSubscription) throw new Error('Unable to create Subscription.');
 
   return storedSubscription;
-
-  // return redirect('/account');
 }

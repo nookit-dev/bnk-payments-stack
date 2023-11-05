@@ -1,5 +1,7 @@
-import { User, price } from '../../db/schema';
-import { createStripeCheckoutSession } from '../../utils/stripe/api';
+import type { Stripe } from 'stripe';
+import { hostURL } from '../../../config.ts';
+import { Price, User, price } from '../../../db/schema.ts';
+import { stripe } from '../stripe-config';
 
 type FormData = {
   planId: string;
@@ -24,11 +26,36 @@ export async function processFormData(request: Request): Promise<FormData> {
   };
 }
 
-export async function stripeCreateCheckoutResource(
+export async function createStripeCheckoutSession(
+  customerId: User['stripeCustomerId'],
+  stripePriceId: Price['id'],
+  params?: Stripe.Checkout.SessionCreateParams,
+) {
+  if (!customerId || !stripePriceId)
+    throw new Error(
+      'Missing required parameters to create Stripe Checkout Session.',
+    );
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    line_items: [{ price: stripePriceId, quantity: 1 }],
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    success_url: `${hostURL}/checkout`,
+    cancel_url: `${hostURL}/plans`,
+    ...params,
+  });
+  if (!session?.url)
+    throw new Error('Unable to create Stripe Checkout Session.');
+
+  return session.url;
+}
+
+export async function createStripeCheckoutUrl(
   user: User,
   request: Request,
 ) {
-  if (!user.customerId) throw new Error('Unable to get Customer ID.');
+  if (!user.stripeCustomerId) throw new Error('Unable to get Customer ID.');
 
   // Get form values.
   // Get client's currency.
@@ -44,7 +71,7 @@ export async function stripeCreateCheckoutResource(
 
   // Redirect to Checkout.
   const checkoutUrl = await createStripeCheckoutSession(
-    user.customerId,
+    user.stripeCustomerId,
     planPrice.id,
   );
 

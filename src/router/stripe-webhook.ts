@@ -4,8 +4,8 @@ import {
   subscription as subscriptionSchema,
   user as userSchema,
 } from '../db/schema';
-import { retrieveStripeSubscription } from '../utils/stripe/api';
 import { PlanId } from '../utils/stripe/plans';
+import { retrieveStripeSubscription } from '../utils/stripe/resources/retrieve-stripe-subscription';
 import { stripe } from '../utils/stripe/stripe-config';
 
 /**
@@ -34,6 +34,10 @@ async function getStripeEvent(request: Request) {
 export async function stripeWebhook(request: Request) {
   const event = await getStripeEvent(request);
 
+  console.log({
+    event,
+  });
+
   try {
     switch (event.type) {
       // Occurs when a Checkout Session has been successfully completed.
@@ -45,7 +49,7 @@ export async function stripeWebhook(request: Request) {
         // Get user from database.
         // const user = await getUserByCustomerId(customerId);
         const user = await userSchema.readItemsWhere({
-          customerId: customerId,
+          stripeCustomerId: customerId,
         })[0];
         if (!user) throw new Error('User not found.');
 
@@ -75,7 +79,7 @@ export async function stripeWebhook(request: Request) {
         // Get user from database.
         // const user = await getUserByCustomerId(customerId);
         const user = await userSchema.readItemsWhere({
-          customerId: customerId,
+          stripeCustomerId: customerId,
         })[0];
         if (!user) throw new Error('User not found.');
 

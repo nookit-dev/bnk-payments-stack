@@ -41,8 +41,8 @@ export const subscription = dbFactory.dbTableFactory({
   schema: {
     id: { primaryKey: true, type: 'TEXT' },
     userId: { type: 'TEXT' },
-    planId: { type: 'TEXT' },
-    priceId: { type: 'TEXT' },
+    planId: { type: 'TEXT', foreignKey: 'plan(id)' },
+    priceId: { type: 'TEXT', foreignKey: 'price(id)' },
     interval: { type: 'TEXT' },
     status: { type: 'TEXT' },
     currentPeriodStart: { type: 'INTEGER' },
@@ -62,7 +62,7 @@ export const user = dbFactory.dbTableFactory({
     username: { type: 'TEXT' },
     passwordHash: { type: 'TEXT' },
     salt: { type: 'TEXT' },
-    customerId: { type: 'TEXT' },
+    stripeCustomerId: { type: 'TEXT' },
     email: { type: 'TEXT' },
     firstName: { type: 'TEXT' },
     lastName: { type: 'TEXT' },
@@ -75,7 +75,7 @@ export const planLimit = dbFactory.dbTableFactory({
   tableName: 'planLimit',
   schema: {
     id: { primaryKey: true, type: 'TEXT' },
-    planId: { type: 'TEXT' },
+    planId: { type: 'TEXT', foreignKey: 'plan(id)' },
     maxItems: { type: 'INTEGER' },
   },
 });
