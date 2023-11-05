@@ -5,7 +5,7 @@ import {
   price as priceSchema,
   subscription as subscriptionSchema,
 } from '../../../db/schema.ts';
-import { PlanId } from '../plans.ts';
+// import { PlanId } from '../plans.ts';
 import { stripe } from '../stripe-config';
 
 export async function createStripeSubscription(
@@ -34,7 +34,7 @@ export async function stripeCreateSubscriptionResource(
 
   if (!user.stripeCustomerId) throw new Error('Unable to find Customer ID.');
 
-  const freePlanPrices = priceSchema.readItemsWhere({ planId: PlanId.FREE });
+  const freePlanPrices = priceSchema.readItemsWhere({ planId: 'free' });
   const freePlanPrice = freePlanPrices.find(
     (price) => price.interval === 'year', // && price.currency === currency,
   );

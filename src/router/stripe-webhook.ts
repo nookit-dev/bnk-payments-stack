@@ -4,7 +4,6 @@ import {
   subscription as subscriptionSchema,
   user as userSchema,
 } from '../db/schema';
-import { PlanId } from '../utils/stripe/plans';
 import { retrieveStripeSubscription } from '../utils/stripe/resources/retrieve-stripe-subscription';
 import { stripe } from '../utils/stripe/stripe-config';
 
@@ -90,7 +89,7 @@ export async function stripeWebhook(request: Request) {
         const freeSubscriptions = subscriptionsList.data
           .map((subscription) => {
             return subscription.items.data.find(
-              (item) => item.price.product === PlanId.FREE,
+              (item) => item.price.product === 'free',
             );
           })
           .filter((item) => item !== undefined);

@@ -23,10 +23,16 @@ export async function createUser(
     username,
     password,
     email,
+    firstName,
+    lastName,
+    customerId,
   }: {
     username: string;
     password: string;
     email: string;
+    firstName?: string;
+    lastName?: string;
+    customerId?: string;
   },
 ) {
   try {
@@ -35,13 +41,15 @@ export async function createUser(
     const userId = uuid();
 
     // TODO need to update schema to allow params to be set optional
-    // @ts-expect-error
     userSchema.create({
       id: userId,
       username,
       passwordHash,
       salt,
       email,
+      firstName: firstName ? firstName : '',
+      lastName: lastName ? lastName : '',
+      stripeCustomerId: customerId ? customerId : '',
     });
 
     console.info('User inserted:', userId);

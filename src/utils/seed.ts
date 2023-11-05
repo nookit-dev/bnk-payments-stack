@@ -1,29 +1,50 @@
+import { Stripe } from 'stripe';
 import { db } from '../db/db';
 import { plan, price as priceSchema } from '../db/schema';
 import { createUser } from './stripe/auth';
-import { PRICING_PLANS } from './stripe/plans';
+import { PRICING_PLANS, PricingPlanKeys } from './stripe/plans';
+import { createStripeCustomer } from './stripe/resources/create-stripe-customer';
 import { configureStripeCustomerPortal } from './stripe/resources/create-stripe-customer-portal';
 import { createStripePrice } from './stripe/resources/create-stripe-price';
 import { createStripeProduct } from './stripe/resources/create-stripe-product';
 
-// import { PrismaClient } from '@prisma/client'
-// import { db } from '~/utils/db'
+// seed customer
+const userEmail = 'test@test.com';
+const username = 'test';
+const userFirstName = 'test';
+const userLastName = 'test';
+const fullName = `${userFirstName} ${userLastName}`;
 
-// import { getAllPlans } from '~/models/plan/get-plan'
-// import { PRICING_PLANS } from '~/services/stripe/plans'
-// import { createStripeProduct } from '~/services/stripe/api/create-product'
-// import { createStripePrice } from '~/services/stripe/api/create-price'
-// import { configureStripeCustomerPortal } from '~/services/stripe/api/configure-customer-portal'
+const createSeedCustomer = async () => {
+  let stripeCustomer: Stripe.Customer | null = null;
 
-// const prisma = new PrismaClient()
+  // try to create the stripe customer first
+  try {
+    stripeCustomer = await createStripeCustomer({
+      email: userEmail,
+      name: fullName,
+    });
+  } catch (e) {
+    console.error(e);
+    console.log(
+      'Stripe customer ' +
+        userEmail +
+        ' likely already exists, please check stripe dashboard.',
+    );
+  }
+
+  return await createUser(db, {
+    password: 'test',
+    username,
+    email: userEmail,
+    customerId: stripeCustomer?.id,
+    firstName: userFirstName,
+    lastName: userLastName,
+  });
+};
 
 async function seed() {
-  createUser(db, {
-    password: 'test',
-    username: 'test',
-    email: 'test@test.com',
-  });
-
+  await createSeedCustomer();
   const plans = await plan.readAll();
 
   if (plans.length > 0) {
@@ -105,7 +126,7 @@ async function seed() {
       // Used to configure the Customer Portal.
       return {
         product: id,
-        prices: stripePrices.map((price) => price.id),
+        prices: stripePrices.map((price) => price.id) as PricingPlanKeys[],
       };
     },
   );
@@ -115,18 +136,23 @@ async function seed() {
   console.log(`📦 Stripe Products has been successfully created.`);
 
   // Configure Customer Portal.
-  await configureStripeCustomerPortal(seededProducts);
-  console.log(`👒 Stripe Customer Portal has been successfully configured.`);
+
+  try {
+    await configureStripeCustomerPortal(seededProducts);
+    console.log(`👒 Stripe Customer Portal has been successfully configured.`);
+  } catch (e) {
+    console.error(e);
+  }
+
   console.log(
     '🎉 Visit: https://dashboard.stripe.com/test/products to see your products.',
   );
 }
 
-seed()
-  .catch((err: unknown) => {
-    console.error(err);
-    process.exit(1);
-  })
+seed().catch((err: unknown) => {
+  console.error(err);
+  process.exit(1);
+});
 //   .finally(async () => {
 //     await prisma.$disconnect();
 //   });

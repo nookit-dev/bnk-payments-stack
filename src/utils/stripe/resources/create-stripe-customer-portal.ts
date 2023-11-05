@@ -1,6 +1,6 @@
 import { hostURL } from '../../../config.ts';
 import { User } from '../../../db/schema';
-import type { PlanId } from '../plans';
+import { PricingPlanKeys } from '../plans.ts';
 import { stripe } from '../stripe-config';
 
 export async function stripeCreateCustomerPortalResource(
@@ -18,7 +18,7 @@ export async function stripeCreateCustomerPortalResource(
 }
 
 type BillingPortalProducts = {
-  product: PlanId;
+  product: PricingPlanKeys;
   prices: string[];
 };
 

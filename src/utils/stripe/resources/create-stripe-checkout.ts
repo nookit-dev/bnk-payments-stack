@@ -1,6 +1,7 @@
 import type { Stripe } from 'stripe';
 import { hostURL } from '../../../config.ts';
 import { Price, User, price } from '../../../db/schema.ts';
+import { PlanInterval } from '../plans.ts';
 import { stripe } from '../stripe-config';
 
 type FormData = {
@@ -9,10 +10,26 @@ type FormData = {
 };
 
 export async function processFormData(request: Request): Promise<FormData> {
-  const formData = Object.fromEntries(await request.formData());
-  const formDataParsed = JSON.parse(formData.plan as string);
-  const planId = String(formDataParsed.planId);
-  const planInterval = String(formDataParsed.planInterval);
+  console.log({
+    request,
+    message: 'got here',
+  });
+
+  // const formData = Object.fromEntries(await request.formData());
+  // const formDataParsed = JSON.parse(formData);
+  const formData = await request.formData();
+  const planId = formData.get('planId') as string
+
+  // const planId = String(formDataParsed.planId);
+  // const planInterval = String(formDataParsed.planInterval);
+  const planInterval: PlanInterval = 'month';
+
+  console.log('got here 2');
+
+  console.log({
+    planId, 
+    planInterval
+  })
 
   if (!planId || !planInterval) {
     throw new Error(
@@ -51,10 +68,7 @@ export async function createStripeCheckoutSession(
   return session.url;
 }
 
-export async function createStripeCheckoutUrl(
-  user: User,
-  request: Request,
-) {
+export async function createStripeCheckoutUrl(user: User, request: Request) {
   if (!user.stripeCustomerId) throw new Error('Unable to get Customer ID.');
 
   // Get form values.
@@ -62,11 +76,18 @@ export async function createStripeCheckoutUrl(
   // const defaultCurrency = getDefaultCurrency(request);
   const { planId, planInterval } = await processFormData(request);
 
+  console.log({
+    planId,
+    planInterval,
+    user,
+  });
+
   const prices = price.readItemsWhere({ planId: planId });
 
   const planPrice = prices.find(
     (price) => price.interval === planInterval, //  && price.currency === defaultCurrency,
   );
+
   if (!planPrice) throw new Error('Unable to find a Plan price.');
 
   // Redirect to Checkout.

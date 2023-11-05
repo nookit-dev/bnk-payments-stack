@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "init": "bun ./src/utils/seed.ts",
+    "seed": "bun ./src/utils/seed.ts",
     "serve": "bun ./index.ts",
     "dev": "bun --hot ./index.ts",
     "stripe-webhook": "stripe listen --forward-to localhost:3000/stripe-webhook"

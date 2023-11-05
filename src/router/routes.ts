@@ -1,10 +1,5 @@
 import { encodeCookie } from '@bnk/core/modules/cookies';
 import {
-  classRecordPlugin,
-  htmlodyBuilder,
-  markdownPlugin,
-} from '@bnk/core/modules/htmlody';
-import {
   Routes,
   htmlRes,
   jsonRes,
@@ -15,8 +10,10 @@ import { db } from '../db/db';
 import { user as userSchema } from '../db/schema';
 import { middleware } from '../middleware';
 import { accountPage } from '../pages/account';
+import { builder } from '../pages/builder';
 import { homePage } from '../pages/home';
 import { loginPage } from '../pages/login';
+import { plansPage } from '../pages/plans';
 import { registerPage } from '../pages/register';
 import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
 import { createStripeCheckoutUrl } from '../utils/stripe/resources/create-stripe-checkout';
@@ -24,12 +21,6 @@ import { stripeCreateCustomerRouteResource } from '../utils/stripe/resources/cre
 import { stripeCreateCustomerPortalResource } from '../utils/stripe/resources/create-stripe-customer-portal';
 import { stripeCreateSubscriptionResource } from '../utils/stripe/resources/create-stripe-subscription';
 import { stripeWebhook } from './stripe-webhook';
-
-const plugins = [classRecordPlugin, markdownPlugin];
-
-const builder = htmlodyBuilder(plugins, {
-  title: 'BNK Template',
-});
 
 let count = 0;
 
@@ -118,13 +109,15 @@ export const routes: Routes<typeof middleware> = {
       const { userId } = jwtVerification.payload;
       const user = userSchema.readById(userId);
 
+      console.log({user})
+
       if (!user) {
         return redirectRes('/login');
       }
 
       return builder.response(
         accountPage({
-          username: user.username,
+          user: user,
         }),
       );
     },
@@ -240,6 +233,45 @@ export const routes: Routes<typeof middleware> = {
       });
 
       return redirectRes('/account');
+    },
+  },
+  '/plans': {
+    GET: async (request, { auth }) => {
+      if (auth === null) redirectRes('/login');
+      const jwtVerification = await auth?.verifyJwt();
+
+      if (!jwtVerification?.payload) {
+        return redirectRes('/login');
+      }
+
+      const { userId } = jwtVerification.payload;
+      const user = userSchema.readById(userId);
+
+      if (!user) {
+        return redirectRes('/login');
+      }
+
+      // may want to pass in the users current plan to the plans page
+      return builder.response(plansPage);
+    },
+    POST: async (request, { auth }) => {
+      if (auth === null) redirectRes('/login');
+      const jwtVerification = await auth?.verifyJwt();
+
+      if (!jwtVerification?.payload) {
+        return redirectRes('/login');
+      }
+
+      const { userId } = jwtVerification.payload;
+      const user = userSchema.readById(userId);
+
+      if (!user) {
+        return redirectRes('/login');
+      }
+
+      const checkoutUrl = await createStripeCheckoutUrl(user, request);
+
+      return redirectRes(checkoutUrl);
     },
   },
   // '/create-stripe-price': {
