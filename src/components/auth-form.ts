@@ -1,8 +1,8 @@
 import {
-  JsonTagElNode,
   CRNode,
+  JsonHtmlNodeTree,
+  JsonTagElNode,
   cc,
-  JsonHtmlNodeMap,
 } from '@bnk/core/modules/htmlody';
 import { textField } from './text-field';
 
@@ -33,7 +33,7 @@ export const authForm = ({ register = false }): JsonTagElNode<CRNode> => {
       },
       content: register ? 'Register' : 'Login',
     },
-  } satisfies JsonHtmlNodeMap<CRNode>;
+  } satisfies JsonHtmlNodeTree<CRNode>;
 
   const result = {
     tag: 'form',

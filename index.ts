@@ -1,5 +1,5 @@
 import * as bnk from '@bnk/core';
-import { routes } from './src/routes';
+import { routes } from './src/router/routes';
 import { middleware } from './src/middleware';
 import { middlewareFactory } from '@bnk/core/modules/server';
 

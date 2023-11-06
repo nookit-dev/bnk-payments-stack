@@ -1,15 +1,9 @@
 import * as bnk from '@bnk/core';
-import { v7 as uuid } from '@bnk/core/modules/uuid';
-import { jwtBack } from '@bnk/core/modules/jwt';
-import Database from 'bun:sqlite';
 import { createToken, verifyToken } from '@bnk/core/modules/auth';
-
-export type User = {
-  username: string;
-  password_hash: string;
-  id: string;
-  salt: string;
-};
+import { jwtBack } from '@bnk/core/modules/jwt';
+import { v7 as uuid } from '@bnk/core/modules/uuid';
+import Database from 'bun:sqlite';
+import { User, user as userSchema } from '../../db/schema';
 
 export const jwtSecret = 'SQ43KRet';
 export const jwtFactory = jwtBack({
@@ -28,9 +22,17 @@ export async function createUser(
   {
     username,
     password,
+    email,
+    firstName,
+    lastName,
+    customerId,
   }: {
     username: string;
     password: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    customerId?: string;
   },
 ) {
   try {
@@ -38,22 +40,21 @@ export async function createUser(
     const passwordHash = await createToken(password, salt);
     const userId = uuid();
 
-    const params = {
-      $id: userId,
-      $username: username,
-      $password_hash: passwordHash,
-      $salt: salt,
-    };
-    db.query(
-      `
-        INSERT INTO users (id, username, password_hash, salt)
-        VALUES ($id, $username, $password_hash, $salt)
-      `,
-    ).run(params);
+    // TODO need to update schema to allow params to be set optional
+    userSchema.create({
+      id: userId,
+      username,
+      passwordHash,
+      salt,
+      email,
+      firstName: firstName ? firstName : '',
+      lastName: lastName ? lastName : '',
+      stripeCustomerId: customerId ? customerId : '',
+    });
 
     console.info('User inserted:', userId);
 
-    return getUserById(db, username);
+    return userSchema.readItemsWhere({ username })[0];
   } catch (e) {
     console.error({ e, note: 'user creation error' });
     return null;
@@ -65,7 +66,7 @@ export async function loginUser(
   username: string,
   password: string,
 ): Promise<{ user: User; token: string } | null> {
-  const existingUser = getUserById(db, username);
+  const existingUser = userSchema.readItemsWhere({ username })[0];
   if (!existingUser) {
     console.info('User does not exist:', username);
     return null;
@@ -74,7 +75,7 @@ export async function loginUser(
   const isMatch = await verifyToken(
     password,
     existingUser.salt,
-    existingUser.password_hash,
+    existingUser.passwordHash,
   );
 
   if (!isMatch) {
@@ -99,7 +100,7 @@ export async function authenticateUserJwt(
   username: string,
   password: string,
 ) {
-  const existingUser = getUserByUsername(db, username);
+  const existingUser = userSchema.readItemsWhere({ username })[0];
 
   if (!existingUser) {
     console.info('User does not exist:', username);
@@ -109,7 +110,7 @@ export async function authenticateUserJwt(
   const isMatch = await verifyToken(
     password,
     existingUser.salt,
-    existingUser.password_hash,
+    existingUser.passwordHash,
   );
 
   if (!isMatch) {
@@ -128,34 +129,3 @@ export async function authenticateUserJwt(
 
   return { user: existingUser, token };
 }
-
-export const getUserByUsername = (
-  db: Database,
-  username: string,
-): User | null => {
-  return (
-    (db
-      .query(
-        `
-      SELECT * FROM users WHERE username = $username
-  `,
-      )
-      .get({
-        $username: username,
-      }) as User) || null
-  );
-};
-
-export const getUserById = (db: Database, userId: string): User | null => {
-  return (
-    (db
-      .query(
-        `
-      SELECT * FROM users WHERE id = $userId
-  `,
-      )
-      .get({
-        $userId: userId,
-      }) as User) || null
-  );
-};

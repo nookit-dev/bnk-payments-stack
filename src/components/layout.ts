@@ -1,10 +1,10 @@
-import { JsonHtmlNodeMap, CRNode, cc } from '@bnk/core/modules/htmlody';
+import { CRNode, JsonHtmlNodeTree, cc } from '@bnk/core/modules/htmlody';
 
 export const getLayout = ({
   children,
 }: {
-  children: JsonHtmlNodeMap<CRNode>;
-}): JsonHtmlNodeMap<CRNode> => {
+  children: JsonHtmlNodeTree<CRNode>;
+}): JsonHtmlNodeTree<CRNode> => {
   return {
     HEADER: {
       tag: 'header',
