@@ -10,5 +10,6 @@ export async function retrieveStripeSubscription(
     throw new Error(
       'Missing required parameters to retrieve Stripe Subscription.',
     );
+
   return stripe.subscriptions.retrieve(id, params);
 }

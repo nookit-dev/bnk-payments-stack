@@ -10,26 +10,10 @@ type FormData = {
 };
 
 export async function processFormData(request: Request): Promise<FormData> {
-  console.log({
-    request,
-    message: 'got here',
-  });
-
-  // const formData = Object.fromEntries(await request.formData());
-  // const formDataParsed = JSON.parse(formData);
   const formData = await request.formData();
-  const planId = formData.get('planId') as string
+  const planId = formData.get('planId') as string;
 
-  // const planId = String(formDataParsed.planId);
-  // const planInterval = String(formDataParsed.planInterval);
   const planInterval: PlanInterval = 'month';
-
-  console.log('got here 2');
-
-  console.log({
-    planId, 
-    planInterval
-  })
 
   if (!planId || !planInterval) {
     throw new Error(

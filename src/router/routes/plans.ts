@@ -5,7 +5,7 @@ import {
   classRecordPlugin,
   htmlodyBuilder,
 } from '@bnk/core/modules/htmlody';
-import { PRICING_PLANS, PricingPlanKeys } from '../utils/stripe/plans';
+import { PRICING_PLANS, PricingPlanKeys } from '../../utils/stripe/plans';
 
 const { createNode } = htmlodyBuilder([classRecordPlugin]);
 
@@ -29,14 +29,6 @@ const planCard = ({
       'm-4',
       'rounded-lg',
       'shadow-lg',
-      // 'rounded-lg',
-      // 'bg-gray-800',
-      // 'shadow-lg',
-      // 'hover:bg-gray-700',
-      // 'transition',
-      // 'duration-200',
-      // 'ease-in-out',
-      // 'cursor-pointer',
     ]),
     children: children([
       {

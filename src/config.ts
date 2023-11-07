@@ -1,4 +1,4 @@
-export const endpointSecret = process.env.STRIPE_WEBHOOK_ENDPOINT || '';
+export const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
 export const isDev = Bun.env.NODE_ENV === 'development' || '';
 

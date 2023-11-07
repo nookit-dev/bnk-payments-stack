@@ -16,7 +16,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@bnk/core": "0.2.18",
+    "@bnk/core": "0.2.20",
     "stripe": "^14.2.0"
   },
   "prettier": {
