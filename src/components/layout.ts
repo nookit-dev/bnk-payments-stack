@@ -1,9 +1,64 @@
-import { CRNode, JsonHtmlNodeTree, cc } from '@bnk/core/modules/htmlody';
+import {
+  CRNode,
+  JsonHtmlNodeTree,
+  cc,
+  children as childrenHelper,
+} from '@bnk/core/modules/htmlody';
+import { User } from '../db/schema';
+import { routes } from '../router/routes';
+
+type NavConfig = {
+  link: keyof typeof routes;
+  title: string;
+};
+
+const navLinks: NavConfig[] = [
+  {
+    link: '/',
+    title: 'Home',
+  },
+  {
+    link: '/account',
+    title: 'Account',
+  },
+  {
+    link: '/plans',
+    title: 'Plans',
+  },
+  {
+    link: '/login',
+    title: 'Login',
+  },
+  {
+    link: '/register',
+    title: 'Signup',
+  },
+];
+
+const renderLinks = () => {
+  return navLinks.map((navLink) => {
+    return {
+      tag: 'li',
+      cr: cc(['mx-4', 'text-black']),
+      children: {
+        link: {
+          tag: 'a',
+          content: navLink.title,
+          attributes: {
+            href: navLink.link,
+          },
+        },
+      },
+    };
+  });
+};
 
 export const getLayout = ({
   children,
+  user,
 }: {
   children: JsonHtmlNodeTree<CRNode>;
+  user?: User;
 }): JsonHtmlNodeTree<CRNode> => {
   return {
     HEADER: {
@@ -31,6 +86,16 @@ export const getLayout = ({
           tag: 'p',
           content: 'Plugable and TypeSafe JSON to HTML Generator',
           cr: cc(['text-lg', 'font-semibold', 'text-black', 'p-4']),
+        },
+        NAVBAR: {
+          tag: 'nav',
+          children: {
+            NAV_LINKS: {
+              tag: 'ul',
+              cr: cc(['flex', 'justify-center', 'items-center', 'p-4']),
+              children: childrenHelper(renderLinks()),
+            },
+          },
         },
       },
     },

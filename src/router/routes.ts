@@ -1,11 +1,7 @@
 import { encodeCookie } from '@bnk/core/modules/cookies';
-import {
-  Routes,
-  htmlRes,
-  jsonRes,
-  redirectRes,
-} from '@bnk/core/modules/server';
-import { getLayout } from '../components/layout';
+import { cc, children } from '@bnk/core/modules/htmlody';
+import { Routes, jsonRes, redirectRes } from '@bnk/core/modules/server';
+import { authForm } from '../components/auth-form';
 import { db } from '../db/db';
 import { subscription, user as userSchema } from '../db/schema';
 import { middleware } from '../middleware';
@@ -13,17 +9,13 @@ import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
 import { createStripeCheckoutUrl } from '../utils/stripe/resources/create-stripe-checkout';
 import { stripeCreateCustomerRouteResource } from '../utils/stripe/resources/create-stripe-customer';
 import { stripeCreateCustomerPortalResource } from '../utils/stripe/resources/create-stripe-customer-portal';
+import { builder, renderPage } from './page-builder';
 import { accountPage } from './routes/account';
-import { builder } from './routes/builder';
-import { homePage } from './routes/home';
-import { loginPage } from './routes/login';
 import { plansPage } from './routes/plans';
-import { registerPage } from './routes/register';
 import { stripeWebhook } from './stripe-webhook';
 
 const authenticateAndRetrieveUser = async (
   auth: ReturnType<(typeof middleware)['auth']>,
-  redirectOnFailure = true,
 ) => {
   if (auth === null) {
     return redirectRes('/login');
@@ -44,15 +36,32 @@ const authenticateAndRetrieveUser = async (
   return user;
 };
 
-export const routes: Routes<typeof middleware> = {
+export const routes = {
   '/': {
     GET: () => {
-      return builder.response(homePage());
+      return renderPage({
+        COUNTER: {
+          tag: 'section',
+          cr: cc(['flex', 'flex-col', 'justify-center', 'items-center', 'p-8']),
+          children: children([
+            {
+              tag: 'h2',
+              content: 'Counter',
+              cr: cc(['text-3xl', 'font-bold', 'mb-4']),
+              attributes: {
+                itemprop: 'headline',
+              },
+            },
+          ]),
+        },
+      });
     },
   },
   '/login': {
     GET: () => {
-      return builder.response(loginPage());
+      return renderPage({
+        LOGIN_FORM: authForm({ register: false }),
+      });
     },
     POST: async (request) => {
       try {
@@ -76,28 +85,24 @@ export const routes: Routes<typeof middleware> = {
           sameSite: 'Strict',
         });
 
-        const response = builder.response(
-          getLayout({
+        const response = renderPage({
+          SECTION: {
+            tag: 'div',
             children: {
-              SECTION: {
-                tag: 'div',
-                children: {
-                  h1: {
-                    tag: 'h1',
-                    content: 'Logged in',
-                  },
-                  a: {
-                    tag: 'a',
-                    attributes: {
-                      href: '/account',
-                    },
-                    content: 'Go to account',
-                  },
+              h1: {
+                tag: 'h1',
+                content: 'Logged in',
+              },
+              a: {
+                tag: 'a',
+                attributes: {
+                  href: '/account',
                 },
+                content: 'Go to account',
               },
             },
-          }),
-        );
+          },
+        });
 
         response.headers.append('Set-Cookie', jwtCookie);
 
@@ -122,7 +127,9 @@ export const routes: Routes<typeof middleware> = {
   },
   '/register': {
     GET: () => {
-      return builder.response(registerPage());
+      return renderPage({
+        REGISTER_FORM: authForm({ register: true }),
+      });
     },
     POST: async (request) => {
       const formData = await request.formData();
@@ -133,14 +140,24 @@ export const routes: Routes<typeof middleware> = {
       const confirmPassword = formData.get('confirmPassword') as string;
 
       if (password !== confirmPassword) {
-        return htmlRes('<div>Passwords do not match. Please try again.</div>');
+        return renderPage({
+          REGIGSTER_FORM: authForm({ register: true }),
+          PASSWORDS_DONT_MATCH: {
+            tag: 'div',
+            content: 'Passwords do not match.',
+          },
+        });
       }
 
       const existingUser = userSchema.readById(username);
       if (existingUser) {
-        return htmlRes(
-          '<div>User already exists. Choose a different username.</div>',
-        );
+        return renderPage({
+          REGIGSTER_FORM: authForm({ register: true }),
+          USER_ALREADY_EXISTS: {
+            tag: 'div',
+            content: 'User already exists. Choose a different username.',
+          },
+        });
       }
 
       const user = await createUser(db, {
@@ -152,7 +169,13 @@ export const routes: Routes<typeof middleware> = {
       if (user) {
         return redirectRes('/login');
       } else {
-        return htmlRes('<div>Registration failed. Please try again.</div>');
+        return renderPage({
+          REGIGSTER_FORM: authForm({ register: true }),
+          ERROR_CREATING_USER: {
+            tag: 'div',
+            content: 'Error creating user. Please try again later.',
+          },
+        });
       }
     },
   },
@@ -209,7 +232,7 @@ export const routes: Routes<typeof middleware> = {
       if (user instanceof Response) return user;
 
       // may want to pass in the users current plan to the plans page
-      return builder.response(plansPage);
+      return renderPage(plansPage)
     },
     POST: async (request, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
@@ -236,38 +259,34 @@ export const routes: Routes<typeof middleware> = {
 
       if (!user) {
         return redirectRes('/login');
-      }21qw2
+      }
 
-      return builder.response(
-        getLayout({
+      return renderPage({
+        SECTION: {
+          tag: 'div',
           children: {
-            SECTION: {
-              tag: 'div',
-              children: {
-                h1: {
-                  tag: 'h1',
-                  content: 'Checkout',
-                },
-                p: {
-                  tag: 'p',
-                  content: `User: ${user.username}`,
-                },
-                p2: {
-                  tag: 'p',
-                  content: `Subscription: ${userSubscription?.id}`,
-                },
-                a: {
-                  tag: 'a',
-                  attributes: {
-                    href: '/account',
-                  },
-                  content: 'Go to account',
-                },
+            h1: {
+              tag: 'h1',
+              content: 'Checkout',
+            },
+            p: {
+              tag: 'p',
+              content: `User: ${user.username}`,
+            },
+            p2: {
+              tag: 'p',
+              content: `Subscription: ${userSubscription?.id}`,
+            },
+            a: {
+              tag: 'a',
+              attributes: {
+                href: '/account',
               },
+              content: 'Go to account',
             },
           },
-        }),
-      );
+        },
+      });
     },
   },
   '^/assets/.+': {
@@ -276,4 +295,4 @@ export const routes: Routes<typeof middleware> = {
       return new Response(Bun.file(`./src/assets/${filename}`).stream());
     },
   },
-};
+} satisfies Routes<typeof middleware>;
