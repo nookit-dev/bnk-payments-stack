@@ -1,3 +1,4 @@
+import { server } from '@bnk/core';
 import { encodeCookie } from '@bnk/core/modules/cookies';
 import { cc, children } from '@bnk/core/modules/htmlody';
 import { Routes, jsonRes, redirectRes } from '@bnk/core/modules/server';
@@ -9,7 +10,7 @@ import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
 import { createStripeCheckoutUrl } from '../utils/stripe/resources/create-stripe-checkout';
 import { stripeCreateCustomerRouteResource } from '../utils/stripe/resources/create-stripe-customer';
 import { stripeCreateCustomerPortalResource } from '../utils/stripe/resources/create-stripe-customer-portal';
-import { builder, renderPage } from './page-builder';
+import { builder, renderPage, turboFrame } from './page-builder';
 import { accountPage } from './routes/account';
 import { plansPage } from './routes/plans';
 import { stripeWebhook } from './stripe-webhook';
@@ -232,7 +233,7 @@ export const routes = {
       if (user instanceof Response) return user;
 
       // may want to pass in the users current plan to the plans page
-      return renderPage(plansPage)
+      return renderPage(plansPage);
     },
     POST: async (request, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
@@ -242,6 +243,30 @@ export const routes = {
       const checkoutUrl = await createStripeCheckoutUrl(user, request);
 
       return redirectRes(checkoutUrl);
+    },
+  },
+  '/messages': {
+    GET: () => {
+      return server.htmlRes(
+        builder.renderSingleNode(
+          builder.createNode({
+            tag: 'div',
+            children: {
+              h1: {
+                tag: 'h1',
+                content: 'Messages',
+              },
+            },
+          }),
+        ),
+      );
+    },
+  },
+  '/turbo': {
+    GET: () => {
+      return renderPage({
+        TURBO_FRAME: turboFrame('turbo-frame', '/messages'),
+      });
     },
   },
   '/stripe-webhook': {

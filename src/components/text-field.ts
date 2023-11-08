@@ -14,7 +14,7 @@ export const textField = ({
   return {
     tag: 'div',
     children: {
-      usernameLabel: {
+      LABEL: {
         tag: 'label',
         cr: cc(['block', 'text-gray-700', 'mb-2']),
         attributes: {

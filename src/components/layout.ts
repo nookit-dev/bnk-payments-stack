@@ -7,8 +7,10 @@ import {
 import { User } from '../db/schema';
 import { routes } from '../router/routes';
 
+export type RouteKeys = keyof typeof routes;
+
 type NavConfig = {
-  link: keyof typeof routes;
+  link:RouteKeys;
   title: string;
 };
 
