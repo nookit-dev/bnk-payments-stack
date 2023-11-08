@@ -19,6 +19,17 @@ export const turboFrame = (id: string, src: RouteKeys) => {
   });
 };
 
+// export const turboStream = (id: string, src: RouteKeys) => {
+//   return builder.createNode({
+//     attributes: {
+//       id,
+//       src,
+//     },
+//     tag: 'turbo-stream',
+//     content: 'Loading...',
+//   });
+// };
+
 const stimulusScript = `
 import { Application, Controller } from "https://unpkg.com/@hotwired/stimulus/dist/stimulus.js"
 window.Stimulus = Application.start()
@@ -32,9 +43,7 @@ Stimulus.register("hello", class extends Controller {
 `;
 
 const turboScript = `
-<script type="module">
   import hotwiredTurbo from 'https://cdn.skypack.dev/@hotwired/turbo';
-</script>
 `;
 
 export const builder = htmlodyBuilder(plugins, {

@@ -250,11 +250,17 @@ export const routes = {
       return server.htmlRes(
         builder.renderSingleNode(
           builder.createNode({
-            tag: 'div',
+            tag: 'turbo-frame',
+            attributes: {
+              id: 'message-test',
+            },
             children: {
               h1: {
                 tag: 'h1',
-                content: 'Messages',
+                content: '<div>Whatttt</div>',
+                attributes: {
+                  id: 'message-test',
+                },
               },
             },
           }),
@@ -265,7 +271,7 @@ export const routes = {
   '/turbo': {
     GET: () => {
       return renderPage({
-        TURBO_FRAME: turboFrame('turbo-frame', '/messages'),
+        TURBO_FRAME: turboFrame('message-test', '/messages'),
       });
     },
   },
