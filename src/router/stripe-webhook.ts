@@ -1,6 +1,7 @@
 import { jsonRes } from '@bnk/core/modules/server';
 import { endpointSecret } from '../config';
 import {
+  Subscription,
   subscription as subscriptionSchema,
   user as userSchema,
 } from '../db/schema';
@@ -11,19 +12,22 @@ import { stripe } from '../utils/stripe/stripe-config';
  * Gets Stripe event signature from request header.
  */
 async function getStripeEvent(request: Request) {
+  console.log({
+    request,
+  });
   try {
     // Get header Stripe signature.
     const signature = request.headers.get('stripe-signature');
+    console.log({ signature });
     if (!signature) throw new Error('Missing Stripe signature.');
 
     const payload = await request.text();
-    const event = stripe.webhooks.constructEvent(
+
+    return stripe.webhooks.constructEventAsync(
       payload,
       signature,
       endpointSecret,
     );
-
-    return event;
   } catch (err: unknown) {
     console.error(err);
     return jsonRes({}, { status: 400 });
@@ -52,11 +56,25 @@ export async function stripeWebhook(request: Request) {
         })[0];
         if (!user) throw new Error('User not found.');
 
+        console.log({
+          user,
+          customerId,
+          subscriptionId,
+          session,
+        });
+
         // Retrieve and update database subscription.
         const subscription = await retrieveStripeSubscription(subscriptionId);
 
-        subscriptionSchema.update(subscription.id, {
-          // id: subscription.id,
+        console.log({
+          subscription,
+        });
+
+        const dbSubscription = await subscriptionSchema.readById(
+          subscription.id,
+        );
+
+        const params: Omit<Subscription, 'createdAt' | 'updatedAt' | 'id'> = {
           userId: user.id,
           planId: String(subscription.items.data[0].plan.product),
           priceId: String(subscription.items.data[0].price.id),
@@ -65,7 +83,28 @@ export async function stripeWebhook(request: Request) {
           currentPeriodStart: subscription.current_period_start,
           currentPeriodEnd: subscription.current_period_end,
           cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
-        });
+        };
+
+        if (!dbSubscription) {
+          // createe
+          subscriptionSchema.create({
+            ...params,
+            id: subscription.id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        } else {
+          subscriptionSchema.update(subscription.id, {
+            userId: user.id,
+            planId: String(subscription.items.data[0].plan.product),
+            priceId: String(subscription.items.data[0].price.id),
+            interval: String(subscription.items.data[0].plan.interval),
+            status: subscription.status,
+            currentPeriodStart: subscription.current_period_start,
+            currentPeriodEnd: subscription.current_period_end,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
+          });
+        }
 
         return jsonRes({}, { status: 200 });
       }

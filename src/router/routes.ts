@@ -1,46 +1,70 @@
+import { server } from '@bnk/core';
 import { encodeCookie } from '@bnk/core/modules/cookies';
-import {
-  Routes,
-  htmlRes,
-  jsonRes,
-  redirectRes,
-} from '@bnk/core/modules/server';
-import { getLayout } from '../components/layout';
+import { cc, children } from '@bnk/core/modules/htmlody';
+import { Routes, jsonRes, redirectRes } from '@bnk/core/modules/server';
+import { authForm } from '../components/auth-form';
 import { db } from '../db/db';
-import { user as userSchema } from '../db/schema';
+import { subscription, user as userSchema } from '../db/schema';
 import { middleware } from '../middleware';
-import { accountPage } from '../pages/account';
-import { builder } from '../pages/builder';
-import { homePage } from '../pages/home';
-import { loginPage } from '../pages/login';
-import { plansPage } from '../pages/plans';
-import { registerPage } from '../pages/register';
 import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
 import { createStripeCheckoutUrl } from '../utils/stripe/resources/create-stripe-checkout';
 import { stripeCreateCustomerRouteResource } from '../utils/stripe/resources/create-stripe-customer';
 import { stripeCreateCustomerPortalResource } from '../utils/stripe/resources/create-stripe-customer-portal';
-import { stripeCreateSubscriptionResource } from '../utils/stripe/resources/create-stripe-subscription';
+import { builder, renderPage, turboFrame } from './page-builder';
+import { accountPage } from './routes/account';
+import { plansPage } from './routes/plans';
 import { stripeWebhook } from './stripe-webhook';
 
-let count = 0;
+const authenticateAndRetrieveUser = async (
+  auth: ReturnType<(typeof middleware)['auth']>,
+) => {
+  if (auth === null) {
+    return redirectRes('/login');
+  }
 
-export const routes: Routes<typeof middleware> = {
+  const jwtVerification = await auth.verifyJwt();
+  if (!jwtVerification?.payload) {
+    return redirectRes('/login');
+  }
+
+  const { userId } = jwtVerification.payload;
+  const user = userSchema.readById(userId);
+
+  if (!user) {
+    return redirectRes('/login');
+  }
+
+  return user;
+};
+
+export const routes = {
   '/': {
-    GET: (request, {}) => {
-      count++;
-
-      return builder.response(
-        homePage({
-          countDisplay: `Count: ${count}`,
-        }),
-      );
+    GET: () => {
+      return renderPage({
+        COUNTER: {
+          tag: 'section',
+          cr: cc(['flex', 'flex-col', 'justify-center', 'items-center', 'p-8']),
+          children: children([
+            {
+              tag: 'h2',
+              content: 'Counter',
+              cr: cc(['text-3xl', 'font-bold', 'mb-4']),
+              attributes: {
+                itemprop: 'headline',
+              },
+            },
+          ]),
+        },
+      });
     },
   },
   '/login': {
-    GET: (request) => {
-      return builder.response(loginPage());
+    GET: () => {
+      return renderPage({
+        LOGIN_FORM: authForm({ register: false }),
+      });
     },
-    POST: async (request, { auth }) => {
+    POST: async (request) => {
       try {
         const formData = await request.formData();
         const username = formData.get('username') as string;
@@ -62,28 +86,24 @@ export const routes: Routes<typeof middleware> = {
           sameSite: 'Strict',
         });
 
-        const response = builder.response(
-          getLayout({
+        const response = renderPage({
+          SECTION: {
+            tag: 'div',
             children: {
-              SECTION: {
-                tag: 'div',
-                children: {
-                  h1: {
-                    tag: 'h1',
-                    content: 'Logged in',
-                  },
-                  a: {
-                    tag: 'a',
-                    attributes: {
-                      href: '/account',
-                    },
-                    content: 'Go to account',
-                  },
+              h1: {
+                tag: 'h1',
+                content: 'Logged in',
+              },
+              a: {
+                tag: 'a',
+                attributes: {
+                  href: '/account',
                 },
+                content: 'Go to account',
               },
             },
-          }),
-        );
+          },
+        });
 
         response.headers.append('Set-Cookie', jwtCookie);
 
@@ -97,34 +117,20 @@ export const routes: Routes<typeof middleware> = {
     },
   },
   '/account': {
-    GET: async (_, { auth }) => {
-      console.log({ auth });
-      if (auth === null) redirectRes('/login');
-      const jwtVerification = await auth?.verifyJwt();
+    GET: async (request, { auth }) => {
+      const authRes = await authenticateAndRetrieveUser(auth);
 
-      if (!jwtVerification?.payload) {
-        return redirectRes('/login');
-      }
+      if (authRes instanceof Response) return authRes; // Early return if Response is received
 
-      const { userId } = jwtVerification.payload;
-      const user = userSchema.readById(userId);
-
-      console.log({user})
-
-      if (!user) {
-        return redirectRes('/login');
-      }
-
-      return builder.response(
-        accountPage({
-          user: user,
-        }),
-      );
+      // Now we have the authenticated user from the middleware
+      return builder.response(accountPage({ user: authRes }));
     },
   },
   '/register': {
     GET: () => {
-      return builder.response(registerPage());
+      return renderPage({
+        REGISTER_FORM: authForm({ register: true }),
+      });
     },
     POST: async (request) => {
       const formData = await request.formData();
@@ -135,14 +141,24 @@ export const routes: Routes<typeof middleware> = {
       const confirmPassword = formData.get('confirmPassword') as string;
 
       if (password !== confirmPassword) {
-        return htmlRes('<div>Passwords do not match. Please try again.</div>');
+        return renderPage({
+          REGIGSTER_FORM: authForm({ register: true }),
+          PASSWORDS_DONT_MATCH: {
+            tag: 'div',
+            content: 'Passwords do not match.',
+          },
+        });
       }
 
       const existingUser = userSchema.readById(username);
       if (existingUser) {
-        return htmlRes(
-          '<div>User already exists. Choose a different username.</div>',
-        );
+        return renderPage({
+          REGIGSTER_FORM: authForm({ register: true }),
+          USER_ALREADY_EXISTS: {
+            tag: 'div',
+            content: 'User already exists. Choose a different username.',
+          },
+        });
       }
 
       const user = await createUser(db, {
@@ -154,25 +170,21 @@ export const routes: Routes<typeof middleware> = {
       if (user) {
         return redirectRes('/login');
       } else {
-        return htmlRes('<div>Registration failed. Please try again.</div>');
+        return renderPage({
+          REGIGSTER_FORM: authForm({ register: true }),
+          ERROR_CREATING_USER: {
+            tag: 'div',
+            content: 'Error creating user. Please try again later.',
+          },
+        });
       }
     },
   },
   '/create-stripe-checkout': {
     POST: async (request, { auth }) => {
-      if (auth === null) redirectRes('/login');
-      const jwtVerification = await auth?.verifyJwt();
+      const user = await authenticateAndRetrieveUser(auth);
 
-      if (!jwtVerification?.payload) {
-        return redirectRes('/login');
-      }
-
-      const { userId } = jwtVerification.payload;
-      const user = userSchema.readById(userId);
-
-      if (!user) {
-        return redirectRes('/login');
-      }
+      if (user instanceof Response) return user;
 
       const checkoutUrl = await createStripeCheckoutUrl(user, request);
 
@@ -180,20 +192,10 @@ export const routes: Routes<typeof middleware> = {
     },
   },
   '/create-stripe-customer-portal': {
-    POST: async (request, { auth }) => {
-      if (auth === null) redirectRes('/login');
-      const jwtVerification = await auth?.verifyJwt();
+    POST: async (_, { auth }) => {
+      const user = await authenticateAndRetrieveUser(auth);
 
-      if (!jwtVerification?.payload) {
-        return redirectRes('/login');
-      }
-
-      const { userId } = jwtVerification.payload;
-      const user = userSchema.readById(userId);
-
-      if (!user) {
-        return redirectRes('/login');
-      }
+      if (user instanceof Response) return user;
 
       const customerPortalUrl = await stripeCreateCustomerPortalResource(user);
 
@@ -210,21 +212,10 @@ export const routes: Routes<typeof middleware> = {
     },
   },
   '/create-stripe-customer': {
-    POST: async (request, { auth }) => {
-      if (auth === null) redirectRes('/login');
-      const jwtVerification = await auth?.verifyJwt();
+    POST: async (_, { auth }) => {
+      const user = await authenticateAndRetrieveUser(auth);
 
-      if (!jwtVerification?.payload) {
-        return redirectRes('/login');
-      }
-
-      const { userId } = jwtVerification.payload;
-      const user = userSchema.readById(userId);
-
-      if (!user) {
-        return redirectRes('/login');
-      }
-
+      if (user instanceof Response) return user;
       await stripeCreateCustomerRouteResource({
         email: user.email,
         firstName: user.firstName,
@@ -236,115 +227,92 @@ export const routes: Routes<typeof middleware> = {
     },
   },
   '/plans': {
-    GET: async (request, { auth }) => {
-      if (auth === null) redirectRes('/login');
-      const jwtVerification = await auth?.verifyJwt();
+    GET: async (_, { auth }) => {
+      const user = await authenticateAndRetrieveUser(auth);
 
-      if (!jwtVerification?.payload) {
-        return redirectRes('/login');
-      }
-
-      const { userId } = jwtVerification.payload;
-      const user = userSchema.readById(userId);
-
-      if (!user) {
-        return redirectRes('/login');
-      }
+      if (user instanceof Response) return user;
 
       // may want to pass in the users current plan to the plans page
-      return builder.response(plansPage);
+      return renderPage(plansPage);
     },
     POST: async (request, { auth }) => {
-      if (auth === null) redirectRes('/login');
-      const jwtVerification = await auth?.verifyJwt();
+      const user = await authenticateAndRetrieveUser(auth);
 
-      if (!jwtVerification?.payload) {
-        return redirectRes('/login');
-      }
-
-      const { userId } = jwtVerification.payload;
-      const user = userSchema.readById(userId);
-
-      if (!user) {
-        return redirectRes('/login');
-      }
+      if (user instanceof Response) return user;
 
       const checkoutUrl = await createStripeCheckoutUrl(user, request);
 
       return redirectRes(checkoutUrl);
     },
   },
-  // '/create-stripe-price': {
-  //   POST: async (request, { auth }) => {
-  //     if (auth === null) redirectRes('/login');
-  //     const jwtVerification = await auth?.verifyJwt();
+  '/messages': {
+    GET: () => {
+      return server.htmlRes(
+        builder.renderSingleNode(
+          builder.createNode({
+            tag: 'div',
+            children: {
+              h1: {
+                tag: 'h1',
+                content: 'Messages',
+              },
+            },
+          }),
+        ),
+      );
+    },
+  },
+  '/turbo': {
+    GET: () => {
+      return renderPage({
+        TURBO_FRAME: turboFrame('turbo-frame', '/messages'),
+      });
+    },
+  },
+  '/stripe-webhook': {
+    POST: async (request) => stripeWebhook(request),
+  },
+  '/checkout': {
+    GET: async (_, { auth }) => {
+      const user = await authenticateAndRetrieveUser(auth);
 
-  //     if (!jwtVerification?.payload) {
-  //       return redirectRes('/login');
-  //     }
+      if (user instanceof Response) return user;
 
-  //     const { userId } = jwtVerification.payload;
-  //     const user = userSchema.readById(userId);
-
-  //     if (!user) {
-  //       return redirectRes('/login');
-  //     }
-
-  //     return redirectRes('/account');
-  //   },
-  // },
-  '/create-stripe-subscription': {
-    POST: async (request, { auth }) => {
-      if (auth === null) redirectRes('/login');
-      const jwtVerification = await auth?.verifyJwt();
-
-      if (!jwtVerification?.payload) {
-        return redirectRes('/login');
-      }
-
-      const { userId } = jwtVerification.payload;
-      const user = userSchema.readById(userId);
+      const userSubscription = subscription.readItemsWhere({
+        userId: user.id,
+      })[0];
 
       if (!user) {
         return redirectRes('/login');
       }
 
-      const subscription = await stripeCreateSubscriptionResource(user);
-
-      return jsonRes(subscription, {
-        status: 200,
+      return renderPage({
+        SECTION: {
+          tag: 'div',
+          children: {
+            h1: {
+              tag: 'h1',
+              content: 'Checkout',
+            },
+            p: {
+              tag: 'p',
+              content: `User: ${user.username}`,
+            },
+            p2: {
+              tag: 'p',
+              content: `Subscription: ${userSubscription?.id}`,
+            },
+            a: {
+              tag: 'a',
+              attributes: {
+                href: '/account',
+              },
+              content: 'Go to account',
+            },
+          },
+        },
       });
-
-      // return redirectRes('/account');
     },
-  },
-
-  // '/create-stripe-product': {
-  //   POST: async (request, { auth }) => {
-  //     if (auth === null) redirectRes('/login');
-  //     const jwtVerification = await auth?.verifyJwt();
-
-  //     if (!jwtVerification?.payload) {
-  //       return redirectRes('/login');
-  //     }
-
-  //     const { userId } = jwtVerification.payload;
-  //     const user = userSchema.readById(userId);
-
-  //     const product = createStripeProduct({
-
-  //     })
-
-  //     // if (!user) {
-  //     //   return redirectRes('/login');
-  //     // }
-
-  //     // return redirectRes('/account');
-  //   },
-  // },
-
-  '/stripe-webhook': {
-    POST: async (request) => stripeWebhook(request),
   },
   '^/assets/.+': {
     GET: (request) => {
@@ -352,4 +320,4 @@ export const routes: Routes<typeof middleware> = {
       return new Response(Bun.file(`./src/assets/${filename}`).stream());
     },
   },
-};
+} satisfies Routes<typeof middleware>;

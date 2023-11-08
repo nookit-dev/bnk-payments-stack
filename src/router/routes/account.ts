@@ -1,7 +1,7 @@
 import type { CRNode, JsonHtmlNodeTree } from '@bnk/core/modules/htmlody';
 import { cc } from '@bnk/core/modules/htmlody';
-import { getLayout } from '../components/layout';
-import { Plan, User, plan, subscription } from '../db/schema';
+import { getLayout } from '../../components/layout';
+import { Plan, User, plan, subscription } from '../../db/schema';
 
 export const accountPage = ({
   user,
