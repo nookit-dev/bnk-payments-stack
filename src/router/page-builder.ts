@@ -3,32 +3,10 @@ import {
   htmlodyBuilder,
   markdownPlugin,
 } from '@bnk/core/modules/htmlody';
-import { RouteKeys, getLayout } from '../components/layout';
+import { layout } from '../components/layout';
 import { User } from '../db/schema';
 
 const plugins = [classRecordPlugin, markdownPlugin];
-
-export const turboFrame = (id: string, src: RouteKeys) => {
-  return builder.createNode({
-    attributes: {
-      id,
-      src,
-    },
-    tag: 'turbo-frame',
-    content: 'Loading...',
-  });
-};
-
-// export const turboStream = (id: string, src: RouteKeys) => {
-//   return builder.createNode({
-//     attributes: {
-//       id,
-//       src,
-//     },
-//     tag: 'turbo-stream',
-//     content: 'Loading...',
-//   });
-// };
 
 const stimulusScript = `
 import { Application, Controller } from "https://unpkg.com/@hotwired/stimulus/dist/stimulus.js"
@@ -46,31 +24,44 @@ const turboScript = `
   import hotwiredTurbo from 'https://cdn.skypack.dev/@hotwired/turbo';
 `;
 
-export const builder = htmlodyBuilder(plugins, {
-  allpages: {
-    headConfig: {
-      title: 'BNK Template',
+export const builder = htmlodyBuilder({
+  plugins,
+  options: {
+    allpages: {
+      headConfig: {
+        title: 'BNK Template',
 
-      linkTags: [
-        {
-          rel: 'stylesheet',
-          href: '/assets/normalizer.css',
-        },
-      ],
-      scriptTags: [
-        {
-          type: 'module',
-          content: stimulusScript,
-        },
-        {
-          type: 'module',
-          content: turboScript,
-        },
-      ],
+        linkTags: [
+          {
+            rel: 'stylesheet',
+            href: '/assets/normalizer.css',
+          },
+        ],
+        scriptTags: [
+          {
+            type: 'module',
+            content: stimulusScript,
+          },
+          {
+            type: 'module',
+            content: turboScript,
+          },
+        ],
+      },
     },
   },
 });
 
-export const renderPage = (content: typeof builder.inferTree, user?: User) => {
-  return builder.response(getLayout({ children: content, user }));
+export const renderPage = <
+  Content extends typeof builder.inferTree = typeof builder.inferTree
+>(
+  content: Content,
+  user?: User
+) => {
+  return builder.response(layout({ children: content, user }));
 };
+
+export const msgWarp = builder?.warp({
+  id: 'message-test',
+  src: '/messages',
+});

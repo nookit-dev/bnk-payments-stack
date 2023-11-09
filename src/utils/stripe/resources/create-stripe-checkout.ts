@@ -60,12 +60,6 @@ export async function createStripeCheckoutUrl(user: User, request: Request) {
   // const defaultCurrency = getDefaultCurrency(request);
   const { planId, planInterval } = await processFormData(request);
 
-  console.log({
-    planId,
-    planInterval,
-    user,
-  });
-
   const prices = price.readItemsWhere({ planId: planId });
 
   const planPrice = prices.find(

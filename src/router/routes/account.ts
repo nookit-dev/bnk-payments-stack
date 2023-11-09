@@ -1,6 +1,6 @@
 import type { CRNode, JsonHtmlNodeTree } from '@bnk/core/modules/htmlody';
 import { cc } from '@bnk/core/modules/htmlody';
-import { getLayout } from '../../components/layout';
+import { layout } from '../../components/layout';
 import { Plan, User, plan, subscription } from '../../db/schema';
 
 export const accountPage = ({
@@ -20,7 +20,7 @@ export const accountPage = ({
     })[0];
   }
 
-  return getLayout({
+  return layout({
     children: {
       COUNTER: {
         tag: 'section',

@@ -12,13 +12,9 @@ import { stripe } from '../utils/stripe/stripe-config';
  * Gets Stripe event signature from request header.
  */
 async function getStripeEvent(request: Request) {
-  console.log({
-    request,
-  });
   try {
     // Get header Stripe signature.
     const signature = request.headers.get('stripe-signature');
-    console.log({ signature });
     if (!signature) throw new Error('Missing Stripe signature.');
 
     const payload = await request.text();
@@ -37,10 +33,6 @@ async function getStripeEvent(request: Request) {
 export async function stripeWebhook(request: Request) {
   const event = await getStripeEvent(request);
 
-  console.log({
-    event,
-  });
-
   try {
     switch (event.type) {
       // Occurs when a Checkout Session has been successfully completed.
@@ -56,19 +48,8 @@ export async function stripeWebhook(request: Request) {
         })[0];
         if (!user) throw new Error('User not found.');
 
-        console.log({
-          user,
-          customerId,
-          subscriptionId,
-          session,
-        });
-
         // Retrieve and update database subscription.
         const subscription = await retrieveStripeSubscription(subscriptionId);
-
-        console.log({
-          subscription,
-        });
 
         const dbSubscription = await subscriptionSchema.readById(
           subscription.id,

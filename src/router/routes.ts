@@ -1,8 +1,9 @@
-import { server } from '@bnk/core';
 import { encodeCookie } from '@bnk/core/modules/cookies';
 import { cc, children } from '@bnk/core/modules/htmlody';
 import { Routes, jsonRes, redirectRes } from '@bnk/core/modules/server';
+import { HttpMethod } from '@bnk/core/modules/utils/http-types';
 import { authForm } from '../components/auth-form';
+import { hostURL, isDev } from '../config';
 import { db } from '../db/db';
 import { subscription, user as userSchema } from '../db/schema';
 import { middleware } from '../middleware';
@@ -10,7 +11,7 @@ import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
 import { createStripeCheckoutUrl } from '../utils/stripe/resources/create-stripe-checkout';
 import { stripeCreateCustomerRouteResource } from '../utils/stripe/resources/create-stripe-customer';
 import { stripeCreateCustomerPortalResource } from '../utils/stripe/resources/create-stripe-customer-portal';
-import { builder, renderPage, turboFrame } from './page-builder';
+import { builder, msgWarp, renderPage } from './page-builder';
 import { accountPage } from './routes/account';
 import { plansPage } from './routes/plans';
 import { stripeWebhook } from './stripe-webhook';
@@ -59,10 +60,24 @@ export const routes = {
     },
   },
   '/login': {
-    GET: () => {
-      return renderPage({
-        LOGIN_FORM: authForm({ register: false }),
-      });
+    GET: async (_, { auth }) => {
+      const loginPage = () =>
+        renderPage({
+          LOGIN_FORM: authForm({ register: false }),
+        });
+
+      if (auth) {
+        try {
+          const result = await auth?.verifyJwt();
+          if (result?.payload) {
+            return redirectRes('/account');
+          }
+        } catch (e) {
+          return loginPage();
+        }
+      }
+
+      return loginPage();
     },
     POST: async (request) => {
       try {
@@ -86,34 +101,30 @@ export const routes = {
           sameSite: 'Strict',
         });
 
-        const response = renderPage({
-          SECTION: {
-            tag: 'div',
-            children: {
-              h1: {
-                tag: 'h1',
-                content: 'Logged in',
-              },
-              a: {
-                tag: 'a',
-                attributes: {
-                  href: '/account',
-                },
-                content: 'Go to account',
-              },
-            },
+        return redirectRes('/account', {
+          headers: {
+            'Set-Cookie': jwtCookie,
           },
         });
-
-        response.headers.append('Set-Cookie', jwtCookie);
-
-        return response;
       } catch (e) {
         console.error(e);
         return jsonRes({
           message: 'We ran into an error on our end. Please try again later.',
         });
       }
+    },
+  },
+  '/logout': {
+    POST: async (_) => {
+      return redirectRes('/login', {
+        headers: {
+          'Set-Cookie': encodeCookie('jwt', '', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Strict',
+          }),
+        },
+      });
     },
   },
   '/account': {
@@ -245,35 +256,25 @@ export const routes = {
       return redirectRes(checkoutUrl);
     },
   },
-  '/messages': {
-    GET: () => {
-      return server.htmlRes(
-        builder.renderSingleNode(
-          builder.createNode({
-            tag: 'turbo-frame',
-            attributes: {
-              id: 'message-test',
-            },
-            children: {
-              h1: {
-                tag: 'h1',
-                content: '<div>Whatttt</div>',
-                attributes: {
-                  id: 'message-test',
-                },
-              },
-            },
-          }),
-        ),
-      );
-    },
-  },
-  '/turbo': {
+  //  this renders the page template along with a node to mount html from over the wire from /messages
+  '/warp-test': {
     GET: () => {
       return renderPage({
-        TURBO_FRAME: turboFrame('message-test', '/messages'),
+        TURBO_FRAME: msgWarp.docNodeMount({
+          tag: 'h1',
+          content: 'Loading..',
+        }),
       });
     },
+  },
+  // when the above route is hit, msgWarp.docNodeMount creates a request to /messasges, and  pushNode takes in
+  // htmlody nodes and mounts them to the turbo-frame on the client as fully rendered html over the wire
+  '/messages': {
+    GET: () =>
+      msgWarp.pushNode({
+        tag: 'h1',
+        content: 'Over the wire whattttttt',
+      }),
   },
   '/stripe-webhook': {
     POST: async (request) => stripeWebhook(request),
@@ -326,4 +327,21 @@ export const routes = {
       return new Response(Bun.file(`./src/assets/${filename}`).stream());
     },
   },
-} satisfies Routes<typeof middleware>;
+} satisfies Routes<{ middlewareConfig: typeof middleware }>;
+
+if (isDev) {
+  const routeKeys = Object.keys(routes) as (keyof typeof routes)[];
+
+  routeKeys.forEach((routeKey) => {
+    // check if key is regex
+    if (routeKey.startsWith('^')) {
+      console.info(`Regex: ${routeKey.slice(1)}`);
+      return;
+    }
+
+    // console.log(routes[routeKey]);
+    const routeMethods = Object.keys(routes[routeKey]) as HttpMethod[];
+
+    console.info(`${hostURL}${routeKey} - ${routeMethods.join(', ')}`);
+  });
+}

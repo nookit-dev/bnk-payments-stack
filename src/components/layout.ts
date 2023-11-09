@@ -5,12 +5,10 @@ import {
   children as childrenHelper,
 } from '@bnk/core/modules/htmlody';
 import { User } from '../db/schema';
-import { routes } from '../router/routes';
 
-export type RouteKeys = keyof typeof routes;
 
 type NavConfig = {
-  link:RouteKeys;
+  link: string;
   title: string;
 };
 
@@ -55,7 +53,7 @@ const renderLinks = () => {
   });
 };
 
-export const getLayout = ({
+export const layout = ({
   children,
   user,
 }: {
@@ -96,6 +94,32 @@ export const getLayout = ({
               tag: 'ul',
               cr: cc(['flex', 'justify-center', 'items-center', 'p-4']),
               children: childrenHelper(renderLinks()),
+            },
+            LOGOUT: {
+              tag: 'form',
+              cr: cc(['flex', 'justify-center', 'items-center', 'p-4']),
+              attributes: {
+                method: 'POST',
+                action: '/logout',
+              },
+              children: {
+                submit: {
+                  tag: 'button',
+                  cr: cc([
+                    'bg-red-500',
+                    // 'hover:bg-red-700',
+                    'text-white',
+                    'font-bold',
+                    'py-2',
+                    'px-4',
+                    'rounded',
+                  ]),
+                  attributes: {
+                    type: 'submit',
+                  },
+                  content: 'Logout',
+                },
+              },
             },
           },
         },

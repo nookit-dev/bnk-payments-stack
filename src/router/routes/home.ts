@@ -1,9 +1,9 @@
 import type { CRNode, JsonHtmlNodeTree } from '@bnk/core/modules/htmlody';
 import { cc, children } from '@bnk/core/modules/htmlody';
-import { getLayout } from '../../components/layout';
+import { layout } from '../../components/layout';
 
 export const homePage = (): JsonHtmlNodeTree<CRNode> => {
-  return getLayout({
+  return layout({
     children: {
       COUNTER: {
         tag: 'section',
