@@ -1,5 +1,5 @@
 {
-  "name": "htmlody-template",
+  "name": "htmlody-",
   "module": "index.ts",
   "type": "module",
   "scripts": {
@@ -12,18 +12,8 @@
     "bun-types": "latest",
     "prettier": "^2.5.1"
   },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
   "dependencies": {
     "@bnk/core": "0.2.20",
     "stripe": "^14.2.0"
-  },
-  "prettier": {
-    "semi": true,
-    "trailingComma": "all",
-    "singleQuote": true,
-    "printWidth": 80,
-    "tabWidth": 2
   }
 }
