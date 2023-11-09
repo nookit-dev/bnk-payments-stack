@@ -1,6 +1,7 @@
 # BNK Payments Stack
 
-## Fullstack Payments Stack Built From the Ground Up.
+## Fullstack Payments Stack Built From the Ground Up
+
 This stack was built to simplify the development workflow to build a working fullstack prototype.
 
 - The only thing I was not going to build from scratch was payments and so I chose Stripe.
@@ -13,11 +14,11 @@ This stack was built to simplify the development workflow to build a working ful
   - Cookie Module to store JWT
   - BNK Server - Allows a robust route configuration system to allow quick and effective middleware handling(with strong type inference), and all the  HTTP methods built right into the configurations.
 
+### Coming Soon
 
-##### Coming Soon
 In order to allow richer client-side experiences I am working on optionally adding [Turbo]("https://turbo.hotwired.dev/") and [Stimulus]("https://stimulus.hotwired.dev/reference/targets)
 
-In essence, what Turbo allows is to build a rich interactive experience by making requests to the server and the server and respond with rendered snippets of HTML and insert the fragements anywhere you need to handle form submissions, lazy loading data from slower sources, and just about any kind of dynamic content that would involve interacting with a database.
+In essence, what Turbo allows is to build a rich interactive experience by making requests to the server and the server and respond with rendered snippets of HTML and insert the fragments anywhere you need. Handle form submissions, lazy load data from slower sources, and just about any kind of dynamic content that would involve interacting with a database.
 
 ### install dependencies
 
@@ -34,10 +35,11 @@ bun run seed
 ### Start Server
 
 ```bash
-bun run index.ts
+bun run dev
 ```
 
 ### Setup and Test Stripe
+
 This is the payments stack after all, you will need a [Stripe]("stripe.com) account and once you have an account you  will need to grab the Stripe Public Key, and the Stripe Secret Key and set those in your `.env`   (`.env.example`. provided as a starting point)
 
 ## Deploy
