@@ -1,7 +1,7 @@
 import * as bnk from '@bnk/core';
-import { createToken, verifyToken } from '@bnk/core/modules/auth';
-import { jwtBack } from '@bnk/core/modules/jwt';
-import { v7 as uuid } from '@bnk/core/modules/uuid';
+import { createToken, verifyToken } from 'bnkit/auth';
+import { jwtBack } from 'bnkit/jwt';
+import { v7 as uuid } from 'bnkit/uuid';
 import Database from 'bun:sqlite';
 import { User, user as userSchema } from '../../db/schema';
 

@@ -1,7 +1,7 @@
-import { encodeCookie } from '@bnk/core/modules/cookies';
-import { cc, children } from '@bnk/core/modules/htmlody';
-import { Routes, jsonRes, redirectRes } from '@bnk/core/modules/server';
-import { HttpMethod } from '@bnk/core/modules/utils/http-types';
+import { encodeCookie } from 'bnkit/cookies';
+import { cc, children } from 'bnkit/htmlody';
+import { Routes, jsonRes, redirectRes } from 'bnkit/server';
+import { HttpMethod } from 'bnkit/utils/http-types';
 import { authForm } from '../components/auth-form';
 import { hostURL, isDev } from '../config';
 import { db } from '../db/db';
@@ -327,7 +327,7 @@ export const routes = {
       return new Response(Bun.file(`./src/assets/${filename}`).stream());
     },
   },
-} satisfies Routes<{ middlewareConfig: typeof middleware }>;
+} satisfies Routes<{ middleware: typeof middleware }>;
 
 if (isDev) {
   const routeKeys = Object.keys(routes) as (keyof typeof routes)[];

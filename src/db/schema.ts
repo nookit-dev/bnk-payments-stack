@@ -1,4 +1,4 @@
-import { createSqliteFactory } from '@bnk/core/modules/sqlite';
+import { createSqliteFactory } from 'bnkit/sqlite';
 import { db } from './db';
 
 export const dbFactory = createSqliteFactory({

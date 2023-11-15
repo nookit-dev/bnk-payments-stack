@@ -1,5 +1,5 @@
-import type { CRNode, JsonHtmlNodeTree } from '@bnk/core/modules/htmlody';
-import { cc, children } from '@bnk/core/modules/htmlody';
+import type { CRNode, JsonHtmlNodeTree } from 'bnkit/htmlody';
+import { cc, children } from 'bnkit/htmlody';
 import { layout } from '../../components/layout';
 
 export const homePage = (): JsonHtmlNodeTree<CRNode> => {

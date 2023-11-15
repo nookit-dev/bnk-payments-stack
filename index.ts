@@ -1,13 +1,12 @@
-import * as bnk from '@bnk/core';
-import { routes } from './src/router/routes';
+import { middlewareFactory, serverFactory } from 'bnkit/server';
 import { middleware } from './src/middleware';
-import { middlewareFactory } from '@bnk/core/modules/server';
+import { routes } from './src/router/routes';
 
-const server = bnk.server.serverFactory({
-  serve: Bun.serve,
+const server = serverFactory({
   routes,
-  middlewareControl: middlewareFactory(middleware),
+  middleware: middlewareFactory(middleware),
 });
 
-const port = 3000;
-server.start(port);
+server.start();
+
+

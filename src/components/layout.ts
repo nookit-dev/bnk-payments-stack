@@ -1,9 +1,9 @@
 import {
-  CRNode,
-  JsonHtmlNodeTree,
-  cc,
-  children as childrenHelper,
-} from '@bnk/core/modules/htmlody';
+    CRNode,
+    JsonHtmlNodeTree,
+    cc,
+    children as childrenHelper,
+} from 'bnkit/htmlody';
 import { User } from '../db/schema';
 
 

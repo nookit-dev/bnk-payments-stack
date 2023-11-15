@@ -1,8 +1,8 @@
 import {
-  classRecordPlugin,
-  htmlodyBuilder,
-  markdownPlugin,
-} from '@bnk/core/modules/htmlody';
+    classRecordPlugin,
+    htmlodyBuilder,
+    markdownPlugin,
+} from 'bnkit/htmlody';
 import { layout } from '../components/layout';
 import { User } from '../db/schema';
 

@@ -13,7 +13,7 @@
     "prettier": "^2.5.1"
   },
   "dependencies": {
-    "@bnk/core": "0.2.20",
+    "bnkit": "^0.3.8",
     "stripe": "^14.2.0"
   }
 }

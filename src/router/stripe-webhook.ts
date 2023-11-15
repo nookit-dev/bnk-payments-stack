@@ -1,9 +1,9 @@
-import { jsonRes } from '@bnk/core/modules/server';
+import { jsonRes } from 'bnkit/server';
 import { endpointSecret } from '../config';
 import {
-  Subscription,
-  subscription as subscriptionSchema,
-  user as userSchema,
+    Subscription,
+    subscription as subscriptionSchema,
+    user as userSchema,
 } from '../db/schema';
 import { retrieveStripeSubscription } from '../utils/stripe/resources/retrieve-stripe-subscription';
 import { stripe } from '../utils/stripe/stripe-config';

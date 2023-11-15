@@ -1,6 +1,6 @@
-import { createServerCookieFactory } from '@bnk/core/modules/cookies';
-import { createJwtFileHandlers, jwtBack } from '@bnk/core/modules/jwt';
-import { MiddlewareConfigMap } from '@bnk/core/modules/server';
+import { createServerCookieFactory } from 'bnkit/cookies';
+import { createJwtFileHandlers, jwtBack } from 'bnkit/jwt';
+import { MiddlewareConfigMap } from 'bnkit/server';
 
 export type UserJWTPayload = {
   userId: string;

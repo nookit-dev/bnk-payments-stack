@@ -1,9 +1,9 @@
 import {
-  CRNode,
-  JsonHtmlNodeTree,
-  JsonTagElNode,
-  cc,
-} from '@bnk/core/modules/htmlody';
+    CRNode,
+    JsonHtmlNodeTree,
+    JsonTagElNode,
+    cc,
+} from 'bnkit/htmlody';
 import { textField } from './text-field';
 
 // handle  login and register form creation

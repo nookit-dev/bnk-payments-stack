@@ -1,4 +1,4 @@
-import { JsonTagElNode, CRNode, cc } from '@bnk/core/modules/htmlody';
+import { CRNode, JsonTagElNode, cc } from 'bnkit/htmlody';
 
 export const textField = ({
   name,
