@@ -20,13 +20,6 @@ export const accountPage = ({
     })[0];
   }
 
-
-  if(userSubscription?.) {
-    return {
-      
-    }
-  }
-
   return layout({
     children: {
       COUNTER: {
@@ -51,7 +44,7 @@ export const accountPage = ({
             content: JSON.stringify(
               { user, userSubscription, userPlan },
               null,
-              2,
+              2
             ),
           },
         },
