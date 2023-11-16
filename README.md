@@ -1,4 +1,4 @@
-# BNK Payments Stack
+# [BNK Payments Stack](https://github.com/brandon-schabel/bnk-payments-stack)
 
 ## Fullstack Payments Stack Built From the Ground Up
 

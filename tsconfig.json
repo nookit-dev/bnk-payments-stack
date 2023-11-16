@@ -15,10 +15,10 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
-  
     "types": [
       "bun-types" // add Bun global
     ]
   },
-  "exclude": ["./.history"]
+  "exclude": ["./.history"],
+  "include": ["package.json", "./*.ts", "src/**/*"]
 }
