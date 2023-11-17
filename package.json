@@ -1,5 +1,5 @@
 {
-  "name": "htmlody-",
+  "name": "bnk-payments-stack",
   "module": "index.ts",
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
     "prettier": "^2.5.1"
   },
   "dependencies": {
-    "bnkit": "^0.3.8",
+    "bnkit": "latest",
     "bun": "^1.0.12",
     "stripe": "^14.2.0"
   }
