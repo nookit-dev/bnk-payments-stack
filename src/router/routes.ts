@@ -1,5 +1,6 @@
+import { initGoogleOAuth, oAuthFactory } from 'bnkit/auth';
 import { encodeCookie } from 'bnkit/cookies';
-import { cc, children } from 'bnkit/htmlody';
+import { JsonTagElNode, cc, children } from 'bnkit/htmlody';
 import { Routes, jsonRes, redirectRes } from 'bnkit/server';
 import { HttpMethod } from 'bnkit/utils/http-types';
 import { authForm } from '../components/auth-form';
@@ -16,8 +17,25 @@ import { accountPage } from './routes/account';
 import { plansPage } from './routes/plans';
 import { stripeWebhook } from './stripe-webhook';
 
+const oauthCallbackUri = '/oauth-callback';
+
+const googleClientId = Bun.env.GOOGLE_OAUTH_CLIENT_ID || '';
+const googleClientSecret = Bun.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
+
+const googleOAuthConfig = initGoogleOAuth(
+  {
+    clientId: googleClientId,
+    clientSecret: googleClientSecret,
+  },
+  {
+    redirectUrl: oauthCallbackUri,
+  }
+);
+
+const googleOAuth = oAuthFactory(googleOAuthConfig);
+
 const authenticateAndRetrieveUser = async (
-  auth: ReturnType<(typeof middleware)['auth']>,
+  auth: ReturnType<(typeof middleware)['auth']>
 ) => {
   if (auth === null) {
     return redirectRes('/login');
@@ -36,6 +54,41 @@ const authenticateAndRetrieveUser = async (
   }
 
   return user;
+};
+
+const methodActionMap: Record<HttpMethod | string, string> = {
+  POST: 'to',
+  GET: 'from',
+};
+
+const actionButton = ({
+  content,
+  method = 'POST',
+  uri,
+}: {
+  content?: string;
+  method?: HttpMethod;
+  uri: string;
+}): JsonTagElNode => {
+  const actionText = methodActionMap[method] || 'to';
+
+  return {
+    // tag: 'form',
+    // children: {
+    // GOOGLE: {
+    // {
+    tag: 'button',
+    content: content ? content : `${method} ${actionText} ${uri}`,
+
+    attributes: {
+      // type: 'submit',
+      // method: 'POST',
+      // action: uri,
+      onclick: `window.location.href='/google-oauth'`, // todo change
+    },
+  };
+  // },
+  // };
 };
 
 export const routes = {
@@ -64,6 +117,22 @@ export const routes = {
       const loginPage = () =>
         renderPage({
           LOGIN_FORM: authForm({ register: false }),
+          OAUTH: actionButton({
+            uri: '/google-auth',
+          }),
+          // {
+          //   tag: 'form',
+          //   children: {
+          //     GOOGLE: {
+          //       tag: 'button',
+          //       content: 'Login With Google',
+          //       attributes: {
+          //         type: 'submit',
+          //         method: 'POST',
+          //       },
+          //     },
+          //   },
+          // },
         });
 
       if (auth) {
@@ -114,6 +183,42 @@ export const routes = {
       }
     },
   },
+  '/google-oauth': {
+    GET: () => {
+      const authUrl = googleOAuth.initiateOAuthFlow();
+
+      return new Response(null, {
+        headers: { Location: authUrl },
+        status: 302,
+      });
+    },
+  },
+  [oauthCallbackUri]: {
+    GET: async (req) => {
+      try {
+        const host = req.headers.get('host');
+        // Parse the URL and query parameters
+        const url = new URL(req.url, `http://${host}`);
+        const queryParams = new URLSearchParams(url.search);
+        const code = queryParams.get('code');
+
+        if (!code) {
+          return new Response('No code provided in query', { status: 400 });
+        }
+
+        const tokenInfo = await googleOAuth.handleRedirect(code);
+
+        console.log({ tokenInfo });
+
+        // Logic after successful authentication
+        return new Response('Login Successful!');
+      } catch (error) {
+        console.error(error);
+        return new Response('Authentication failed', { status: 500 });
+      }
+    },
+  },
+
   '/logout': {
     POST: async (_) => {
       return redirectRes('/login', {
@@ -215,7 +320,7 @@ export const routes = {
           {
             message: 'Unable to create customer portal.',
           },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
