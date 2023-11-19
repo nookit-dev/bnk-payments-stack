@@ -28,7 +28,7 @@ const googleOAuthConfig = initGoogleOAuth(
     clientSecret: googleClientSecret,
   },
   {
-    redirectUrl: oauthCallbackUri,
+    redirectUrl: hostURL  + oauthCallbackUri,
   }
 );
 
