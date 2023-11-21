@@ -34,7 +34,7 @@ const getAppName = (): string => {
 };
 
 // Function to tag and push Docker image
-const tagAndPushDockerImage = async (imageName: string, newTag: string) => {
+const tagAndPushImage = async (imageName: string, newTag: string) => {
   await runCommand('docker', ['tag', imageName, newTag], process.env);
   await runCommand('docker', ['push', newTag], process.env);
 };
@@ -42,22 +42,22 @@ const tagAndPushDockerImage = async (imageName: string, newTag: string) => {
 // Main function to run all commands
 const runAllCommands = async () => {
   const appName = getAppName();
-  const dockerHubUsername = Bun.env.DOCKER_HUB_USERNAME;
-  const acrName = Bun.env.ACR_NAME;
-  const resourceGroupName = Bun.env.RESOURCE_GROUP_NAME;
+  // const dockerHubUsername = Bun.env.DOCKER_HUB_USERNAME || '';
+  const acrName = Bun.env.ACR_NAME || '';
+  const resourceGroupName = Bun.env.RESOURCE_GROUP_NAME || '';
 
   try {
     // Docker build
     await runCommand('docker', ['build', '-t', appName, '.'], process.env);
 
     // Tag and push to Docker Hub
-    const dockerHubTag = `${dockerHubUsername}/${appName}:latest`;
-    await tagAndPushDockerImage(appName, dockerHubTag);
+    // const dockerHubTag = `${dockerHubUsername}/${appName}:latest`;
+    // await tagAndPushDockerImage(appName, dockerHubTag);
 
     // Azure login and Docker push to ACR
     await runCommand('az', ['acr', 'login', '--name', acrName], process.env);
     const acrTag = `${acrName}.azurecr.io/${appName}:latest`;
-    await tagAndPushDockerImage(appName, acrTag);
+    await tagAndPushImage(appName, acrTag);
 
     // Azure container creation
     await runCommand(
@@ -70,7 +70,7 @@ const runAllCommands = async () => {
         '--name',
         `${appName}-container`,
         '--image',
-        dockerHubTag,
+        // dockerHubTag,
         '--dns-name-label',
         `${appName}-app`,
         '--ports',
