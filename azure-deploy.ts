@@ -1,87 +1,178 @@
-import { spawn } from 'bun';
+import { spawnSync } from 'bun';
 import pkg from './package.json';
 
-// Utility function to run a command using Bun's spawn
-const runCommand = async (
-  command: string,
-  args: string[],
-  env: { [key: string]: string | undefined }
-): Promise<void> => {
-  const result = await spawn(command, args, { env: process.env, shell: true });
-  const { exitCode, stdout, stderr } = result;
+const DEBUG = true;
 
-  if (stdout) {
-    console.log(`stdout: ${stdout}`);
+// First setup an AKS registry to push images to
+// Then create  a container apps environment
+// Then based on the above set your AZURE_REGISTRY_NAME, AZURE_REGISTRY_USERNAME, AZURE_REGISTRY_PASSWORD, AZURE_RESOURCE_GROUP_NAME, AZURE_CONTAINER_ENV
+
+type EnvTypeMap = {
+  string: string;
+  number: number;
+  boolean: boolean;
+  json: any;
+};
+
+function generateUniqueTag(): string {
+  return new Date().toISOString().replace(/[:.-]/g, '');
+}
+
+const getAppName = (): string => pkg.name || 'bnk-server';
+const acrName = envKey('AZURE_REGISTRY_NAME');
+const appName = getAppName();
+const uniqueTag = generateUniqueTag();
+const acrTag = `${acrName}.azurecr.io/${appName}:${uniqueTag}`;
+const resourceGroupName = envKey('AZURE_RESOURCE_GROUP_NAME');
+const containerEnv = envKey('AZURE_CONTAINER_ENV');
+const acrRegistryName = envKey('AZURE_REGISTRY_NAME');
+
+function constructAcrImageUrl(
+  subscriptionId: string,
+  resourceGroupName: string,
+  registryName: string,
+  repositoryName: string,
+  tag: string = uniqueTag
+): string {
+  const registryId = encodeURIComponent(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.ContainerRegistry/registries/${registryName}`
+  );
+  const encodedRepositoryName = encodeURIComponent(repositoryName);
+  const encodedTag = encodeURIComponent(tag);
+  return `https://portal.azure.com/#view/Microsoft_Azure_ContainerRegistries/ImageMetadataBlade/registryId/${registryId}/repositoryName/${encodedRepositoryName}/tag/${encodedTag}`;
+}
+function envKey<T extends keyof EnvTypeMap = 'string'>(
+  key: string,
+  expectedType: T = 'string' as T
+): EnvTypeMap[T] {
+  const value = Bun.env[key];
+  if (!value) {
+    throw new Error(`Environment variable ${key} is not set`);
   }
 
-  if (stderr) {
-    console.error(`stderr: ${stderr}`);
+  switch (expectedType) {
+    case 'number':
+      return Number(value) as EnvTypeMap[T];
+    case 'boolean':
+      return (value === 'true') as EnvTypeMap[T];
+    case 'json':
+      return JSON.parse(value) as EnvTypeMap[T];
+    default:
+      return value as EnvTypeMap[T];
   }
+}
 
-  if (exitCode !== 0) {
-    throw new Error(`Command failed with exit code ${exitCode}`);
+const runCmd = (command: string, args: string[]): Promise<void> => {
+  if (DEBUG) {
+    console.log(`Running command: ${command} ${args.join(' ')}`);
+  }
+  const result = spawnSync([command, ...args], { env: Bun.env, shell: true });
+  if (result.exitCode !== 0) {
+    const errorObject = {
+      command: `${command} ${args.join(' ')}`,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+    throw new Error(`Command failed: 
+    Command: ${errorObject.command}
+
+    Stdout: ${errorObject.stdout}
+
+
+    Stderr: ${errorObject.stderr}
+    `);
   }
 };
 
-// Read the app name from package.json
-const getAppName = (): string => {
-  try {
-    return pkg.name;
-  } catch (error) {
-    console.error('Error reading package.json:', error);
-    return 'bnk-server'; // Fallback name
+const runDockerLogin = () => {
+  const password = envKey('AZURE_REGISTRY_PASSWORD');
+  const args = [
+    'login',
+    `${acrRegistryName}.azurecr.io`,
+    '--username',
+    envKey('AZURE_REGISTRY_USERNAME'),
+    '--password',
+    password,
+  ];
+
+  const result = spawnSync(['docker', ...args], {
+    env: Bun.env,
+    shell: true,
+  });
+
+  if (result.exitCode !== 0) {
+    throw new Error(`Docker login failed: ${result.stderr}`);
+  }
+
+  if (DEBUG) {
+    console.log('Docker login successful');
   }
 };
 
-// Function to tag and push Docker image
-const tagAndPushImage = async (imageName: string, newTag: string) => {
-  await runCommand('docker', ['tag', imageName, newTag], process.env);
-  await runCommand('docker', ['push', newTag], process.env);
-};
+const performDeployment = () => {
+  runDockerLogin();
 
-// Main function to run all commands
-const runAllCommands = async () => {
-  const appName = getAppName();
-  // const dockerHubUsername = Bun.env.DOCKER_HUB_USERNAME || '';
-  const acrName = Bun.env.ACR_NAME || '';
-  const resourceGroupName = Bun.env.RESOURCE_GROUP_NAME || '';
+  runCmd('docker', ['build', '-t', acrTag, '.']);
+  runCmd('docker', ['push', acrTag]);
 
-  try {
-    // Docker build
-    await runCommand('docker', ['build', '-t', appName, '.'], process.env);
-
-    // Tag and push to Docker Hub
-    // const dockerHubTag = `${dockerHubUsername}/${appName}:latest`;
-    // await tagAndPushDockerImage(appName, dockerHubTag);
-
-    // Azure login and Docker push to ACR
-    await runCommand('az', ['acr', 'login', '--name', acrName], process.env);
-    const acrTag = `${acrName}.azurecr.io/${appName}:latest`;
-    await tagAndPushImage(appName, acrTag);
-
-    // Azure container creation
-    await runCommand(
-      'az',
-      [
-        'container',
-        'create',
-        '--resource-group',
-        resourceGroupName,
-        '--name',
-        `${appName}-container`,
-        '--image',
-        // dockerHubTag,
-        '--dns-name-label',
-        `${appName}-app`,
-        '--ports',
-        '8080',
-      ],
-      process.env
+  if (DEBUG) {
+    console.log('Pushed image to ACR');
+    const subscriptionId = envKey('AZURE_SUBSCRIPTION_ID');
+    const acrImageUrl = constructAcrImageUrl(
+      subscriptionId,
+      resourceGroupName,
+      acrRegistryName,
+      appName,
+      uniqueTag
     );
-  } catch (error) {
-    console.error('An error occurred:', error);
+    console.log(`ACR Image URL: ${acrImageUrl}`);
   }
+
+  runCmd('az', ['set', '--subscription', envKey('AZURE_SUBSCRIPTION_ID')]);
+
+  // Azure Container Apps deployment
+  runCmd('az', [
+    'containerapp',
+    'create',
+    '--name',
+    pkg.name,
+    '--resource-group',
+    resourceGroupName,
+    '--image',
+    acrTag,
+    '--environment',
+    containerEnv,
+  ]);
 };
 
-// Execute the script
-runAllCommands();
+const writeDeploymentDetails = () => {
+  const filename = `deployment-details-${appName}.json`;
+  const file = Bun.file(filename);
+  const writer = file.writer();
+
+  writer.write(
+    JSON.stringify(
+      {
+        appName,
+        acrName,
+        acrTag,
+        resourceGroupName,
+        containerEnv,
+        acrRegistryName,
+        uniqueTag,
+      },
+      null,
+      2
+    )
+  );
+
+  writer.end();
+};
+
+try {
+  if (DEBUG) writeDeploymentDetails();
+
+  performDeployment();
+} catch (error) {
+  console.error('An error occurred:', error);
+}
