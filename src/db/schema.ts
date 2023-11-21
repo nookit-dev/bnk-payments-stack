@@ -1,3 +1,5 @@
+// import { hotkeyCollection } from './schema';
+import { uuid } from 'bnkit';
 import { createSqliteFactory } from 'bnkit/sqlite';
 import { db } from './db';
 
@@ -81,3 +83,40 @@ export const planLimit = dbFactory.dbTableFactory({
 });
 
 export type PlanLimit = ReturnType<typeof planLimit.infer>;
+
+export const shortcut = dbFactory.dbTableFactory({
+  tableName: 'shortcut',
+  schema: {
+    id: { primaryKey: true, type: 'TEXT' },
+    keys: { type: 'TEXT' },
+    description: { type: 'TEXT' },
+    groupId: { type: 'TEXT', foreignKey: 'hotkeyGroup(id)' },
+  },
+});
+
+export type Shortcut = ReturnType<typeof shortcut.infer>;
+
+export const shortcutGroup = dbFactory.dbTableFactory({
+  tableName: 'hotkeyGroup',
+  schema: {
+    id: { primaryKey: true, type: 'TEXT' },
+    title: { type: 'TEXT' },
+    description: { type: 'TEXT' },
+    emoji: { type: 'TEXT' },
+    applicationId: { type: 'TEXT', foreignKey: 'application(id)' },
+  },
+});
+
+export type ShortcutGroup = ReturnType<typeof shortcutGroup.infer>;
+
+export const shortcutCollection = dbFactory.dbTableFactory({
+  tableName: 'shortcutCollection',
+  schema: {
+    id: { primaryKey: true, type: 'TEXT' },
+    name: { type: 'TEXT' },
+    emoji: { type: 'TEXT' },
+    description: { type: 'TEXT' },
+  },
+});
+
+export type ShortcutCollection = ReturnType<typeof shortcutCollection.infer>;

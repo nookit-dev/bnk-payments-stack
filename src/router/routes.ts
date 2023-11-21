@@ -1,4 +1,4 @@
-// import { initGoogleOAuth, oAuthFactory } from 'bnkit/auth';
+import { initGoogleOAuth, oAuthFactory } from 'bnkit/auth';
 import { encodeCookie } from 'bnkit/cookies';
 import { JsonTagElNode, cc, children } from 'bnkit/htmlody';
 import { Routes, jsonRes, redirectRes } from 'bnkit/server';
@@ -22,17 +22,17 @@ const oauthCallbackUri = '/oauth-callback';
 const googleClientId = Bun.env.GOOGLE_OAUTH_CLIENT_ID || '';
 const googleClientSecret = Bun.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
 
-// const googleOAuthConfig = initGoogleOAuth(
-//   {
-//     clientId: googleClientId,
-//     clientSecret: googleClientSecret,
-//   },
-//   {
-//     redirectUrl: hostURL  + oauthCallbackUri,
-//   }
-// );
+const googleOAuthConfig = initGoogleOAuth(
+  {
+    clientId: googleClientId,
+    clientSecret: googleClientSecret,
+  },
+  {
+    redirectUrl: hostURL  + oauthCallbackUri,
+  }
+);
 
-// const googleOAuth = oAuthFactory(googleOAuthConfig);
+const googleOAuth = oAuthFactory(googleOAuthConfig);
 
 const authenticateAndRetrieveUser = async (
   auth: ReturnType<(typeof middleware)['auth']>
@@ -183,42 +183,41 @@ export const routes = {
       }
     },
   },
-  // '/google-oauth': {
-  //   GET: () => {
-  //     const authUrl = googleOAuth.initiateOAuthFlow();
+  '/google-oauth': {
+    GET: () => {
+      const authUrl = googleOAuth.initiateOAuthFlow();
 
-  //     return new Response(null, {
-  //       headers: { Location: authUrl },
-  //       status: 302,
-  //     });
-  //   },
-  // },
-  // [oauthCallbackUri]: {
-  //   GET: async (req) => {
-  //     try {
-  //       const host = req.headers.get('host');
-  //       // Parse the URL and query parameters
-  //       const url = new URL(req.url, `http://${host}`);
-  //       const queryParams = new URLSearchParams(url.search);
-  //       const code = queryParams.get('code');
+      return new Response(null, {
+        headers: { Location: authUrl },
+        status: 302,
+      });
+    },
+  },
+  [oauthCallbackUri]: {
+    GET: async (req) => {
+      try {
+        const host = req.headers.get('host');
+        // Parse the URL and query parameters
+        const url = new URL(req.url, `http://${host}`);
+        const queryParams = new URLSearchParams(url.search);
+        const code = queryParams.get('code');
 
-  //       if (!code) {
-  //         return new Response('No code provided in query', { status: 400 });
-  //       }
+        if (!code) {
+          return new Response('No code provided in query', { status: 400 });
+        }
 
-  //       const tokenInfo = await googleOAuth.handleRedirect(code);
+        const tokenInfo = await googleOAuth.handleRedirect(code);
 
-  //       console.log({ tokenInfo });
+        console.log({ tokenInfo });
 
-  //       // Logic after successful authentication
-  //       return new Response('Login Successful!');
-  //     } catch (error) {
-  //       console.error(error);
-  //       return new Response('Authentication failed', { status: 500 });
-  //     }
-  //   },
-  // },
-
+        // Logic after successful authentication
+        return new Response('Login Successful!');
+      } catch (error) {
+        console.error(error);
+        return new Response('Authentication failed', { status: 500 });
+      }
+    },
+  },
   '/logout': {
     POST: async (_) => {
       return redirectRes('/login', {
