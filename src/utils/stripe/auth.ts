@@ -1,4 +1,4 @@
-import * as bnk from '@bnk/core';
+import * as bnk from 'bnkit';
 import { createToken, verifyToken } from 'bnkit/auth';
 import { jwtBack } from 'bnkit/jwt';
 import { v7 as uuid } from 'bnkit/uuid';
