@@ -7,6 +7,10 @@ import { authForm } from '../components/auth-form';
 import { hostURL, isDev } from '../config';
 import { db } from '../db/db';
 import {
+  collectionToMarkdown,
+  loadCollectionFromDb,
+} from '../db/json-importer';
+import {
   Shortcut,
   shortcutCollection,
   shortcutGroup,
@@ -168,6 +172,8 @@ export const routes = {
         return htmlRes('No id provided', { status: 400 });
       }
 
+      const collection = shortcutCollection.readById(id);
+
       const collectionGroups = shortcutGroup.readItemsWhere({
         collectionId: id,
       });
@@ -197,8 +203,6 @@ export const routes = {
         };
       });
 
-      console.log(JSON.stringify({ groupMap, groups }, null, 2));
-
       return renderPage({
         APP: {
           tag: 'section',
@@ -206,10 +210,48 @@ export const routes = {
           children: children([
             {
               tag: 'h2',
-              content: 'App',
+              content: collection.emoji + ' ' + collection.name,
               cr: cc(['text-3xl', 'font-bold', 'mb-4']),
               attributes: {
                 itemprop: 'headline',
+              },
+            },
+            {
+              tag: 'p',
+              content: collection.description,
+            },
+            {
+              tag: 'a',
+              content: 'Download Markdown',
+              cr: cc([
+                'border',
+                'border-gray-200',
+                'shadow-md',
+                'p-2',
+                'text-lg',
+                'rounded-md',
+                'm-2',
+              ]),
+              attributes: {
+                href: `/export?id=${collection.id}&type=markdown`,
+                download: `${collection.id}.md`,
+              },
+            },
+            {
+              tag: 'a',
+              content: 'Download JSON',
+              cr: cc([
+                'border',
+                'border-gray-200',
+                'shadow-md',
+                'p-2',
+                'text-lg',
+                'rounded-md',
+                'm-2',
+              ]),
+              attributes: {
+                href: `/export?id=${collection.id}&type=json`,
+                download: `${collection.id}.json`,
               },
             },
             {
@@ -278,6 +320,52 @@ export const routes = {
           ]),
         },
       });
+    },
+  },
+  '/export': {
+    GET: (request) => {
+      const queryParams = new URLSearchParams(request.url.split('?')[1]);
+
+      const id = queryParams.get('id');
+      const type = queryParams.get('type');
+
+      if (!id) {
+        return htmlRes('No id provided', { status: 400 });
+      }
+
+      if (!type) {
+        return htmlRes('No type provided', { status: 400 });
+      }
+
+      if (type !== 'json' && type !== 'markdown') {
+        return htmlRes('Invalid type provided', { status: 400 });
+      }
+
+      const collection = loadCollectionFromDb(id);
+
+      if (!collection) {
+        return htmlRes('No collection found', { status: 400 });
+      }
+
+      if (type === 'json') {
+        const jsonFileContent = JSON.stringify(collection, null, 2);
+        const headers = new Headers({
+          'Content-Type': 'application/json',
+          'Content-Disposition': `attachment; filename="${id}.json"`,
+        });
+        return new Response(jsonFileContent, { headers });
+      }
+
+      if (type === 'markdown') {
+        const markdownFileContent = collectionToMarkdown(collection); // Implement this function
+        const headers = new Headers({
+          'Content-Type': 'text/markdown',
+          'Content-Disposition': `attachment; filename="${id}.md"`,
+        });
+        return new Response(markdownFileContent, { headers });
+      }
+
+      return htmlRes('Unkown Error', { status: 500 });
     },
   },
 

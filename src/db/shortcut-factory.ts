@@ -98,65 +98,6 @@ export const shortcutFactory = (config: {
     let groupFactory = createGroup(groupConfig, collectionData);
 
     return groupFactory.initGroup();
-
-    // return {
-    //   group,
-    //   // addManyShortcuts: (
-    //   //   shortcutConfigs: {
-    //   //     keys: string;
-    //   //     description: string;
-    //   //   }[]
-    //   // ) => {
-    //   //   return shortcutConfigs.map((shortcutConfig) => {
-    //   //     const shortcutEntry = {
-    //   //       id: uuid.v7(),
-    //   //       keys: shortcutConfig.keys,
-    //   //       description: shortcutConfig.description,
-    //   //       groupId: group?.id || '',
-    //   //     };
-
-    //   //     try {
-    //   //       return shortcut.create(shortcutEntry);
-    //   //     } catch (e) {
-    //   //       console.error('Error creating shortcut', {
-    //   //         errorMessage: e.message,
-    //   //         shortcutEntry,
-    //   //       });
-    //   //       console.error(e);
-    //   //     }
-    //   //   });
-    //   // },
-    //   // addShortcut: (shortcutConfig: { keys: string; description: string }) => {
-    //   //   try {
-    //   //     return addShortcut(shortcutConfig, group);
-    //   //   } catch (e) {
-
-    //   //     console.log({
-    //   //       group,
-    //   //       groupid: group?.id,
-    //   //     })
-    //   //     // check if shortcut already exists
-    //   //     const existingShort = shortcut.readItemsWhere({
-    //   //       keys: shortcutConfig.keys,
-    //   //       groupId: group?.id,
-    //   //     });
-    //   //     if (existingShort.length > 0) {
-    //   //       console.info(`Shortcut ${shortcutConfig.keys} already exists. `);
-    //   //       return null;
-    //   //     }
-    //   //     throw e;
-    //   //   }
-    //   // },
-    //   // updateShortcut: (
-    //   //   shortcutId: string,
-    //   //   updatedConfig: { keys?: string; description?: string }
-    //   // ) => {
-    //   //   return shortcut.update(shortcutId, updatedConfig);
-    //   // },
-    //   // removeShortcut: (shortcutId: string) => {
-    //   //   return shortcut.deleteById(shortcutId);
-    //   // },
-    // };
   };
 
   const collectionData: ShortcutCollection = {
@@ -165,6 +106,10 @@ export const shortcutFactory = (config: {
     emoji: config.emoji,
     description: config.description,
   };
+
+  const readCollection = () => {
+    //  get groups, then in those groups, get shortcuts
+  }
 
   return {
     collection: collectionData,
