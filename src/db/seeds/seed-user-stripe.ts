@@ -1,12 +1,12 @@
 import { Stripe } from 'stripe';
-import { db } from '../db/db';
-import { plan, price as priceSchema } from '../db/schema';
-import { createUser } from './stripe/auth';
-import { PRICING_PLANS, PricingPlanKeys } from './stripe/plans';
-import { createStripeCustomer } from './stripe/resources/create-stripe-customer';
-import { configureStripeCustomerPortal } from './stripe/resources/create-stripe-customer-portal';
-import { createStripePrice } from './stripe/resources/create-stripe-price';
-import { createStripeProduct } from './stripe/resources/create-stripe-product';
+import { createUser } from '../../utils/stripe/auth';
+import { PRICING_PLANS, PricingPlanKeys } from '../../utils/stripe/plans';
+import { createStripeCustomer } from '../../utils/stripe/resources/create-stripe-customer';
+import { configureStripeCustomerPortal } from '../../utils/stripe/resources/create-stripe-customer-portal';
+import { createStripePrice } from '../../utils/stripe/resources/create-stripe-price';
+import { createStripeProduct } from '../../utils/stripe/resources/create-stripe-product';
+import { db } from '../db';
+import { plan, price as priceSchema } from '../schema';
 
 // seed customer
 const userEmail = 'test@test.com';

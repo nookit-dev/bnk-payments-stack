@@ -1,17 +1,24 @@
 import { initGoogleOAuth, oAuthFactory } from 'bnkit/auth';
 import { encodeCookie } from 'bnkit/cookies';
 import { JsonTagElNode, cc, children } from 'bnkit/htmlody';
-import { Routes, jsonRes, redirectRes } from 'bnkit/server';
+import { Routes, htmlRes, jsonRes, redirectRes } from 'bnkit/server';
 import { HttpMethod } from 'bnkit/utils/http-types';
 import { authForm } from '../components/auth-form';
 import { hostURL, isDev } from '../config';
 import { db } from '../db/db';
-import { subscription, user as userSchema } from '../db/schema';
+import {
+  Shortcut,
+  shortcutCollection,
+  shortcutGroup,
+  subscription,
+  user as userSchema,
+} from '../db/schema';
 import { middleware } from '../middleware';
 import { authenticateUserJwt, createUser } from '../utils/stripe/auth';
 import { createStripeCheckoutUrl } from '../utils/stripe/resources/create-stripe-checkout';
 import { stripeCreateCustomerRouteResource } from '../utils/stripe/resources/create-stripe-customer';
 import { stripeCreateCustomerPortalResource } from '../utils/stripe/resources/create-stripe-customer-portal';
+import { ShortcutGroup, shortcut } from './../db/schema';
 import { builder, msgWarp, renderPage } from './page-builder';
 import { accountPage } from './routes/account';
 import { plansPage } from './routes/plans';
@@ -28,7 +35,7 @@ const googleOAuthConfig = initGoogleOAuth(
     clientSecret: googleClientSecret,
   },
   {
-    redirectUrl: hostURL  + oauthCallbackUri,
+    redirectUrl: hostURL + oauthCallbackUri,
   }
 );
 
@@ -112,6 +119,168 @@ export const routes = {
       });
     },
   },
+  '/apps': {
+    GET: () => {
+      const collections = shortcutCollection.readAll();
+
+      return renderPage({
+        APPS: {
+          tag: 'section',
+          cr: cc(['flex', 'flex-col', 'justify-center', 'items-center', 'p-8']),
+          children: children([
+            {
+              tag: 'h2',
+              content: 'Apps',
+              cr: cc(['text-3xl', 'font-bold', 'mb-4']),
+              attributes: {
+                itemprop: 'headline',
+              },
+            },
+            {
+              tag: 'ul',
+              children: children(
+                collections.map((collection) => ({
+                  tag: 'li',
+                  children: children([
+                    {
+                      tag: 'a',
+                      attributes: {
+                        href: '/app?id=' + collection.id,
+                      },
+                      content: collection.name,
+                    },
+                  ]),
+                }))
+              ),
+            },
+          ]),
+        },
+      });
+    },
+  },
+  '/app': {
+    GET: (request) => {
+      const queryParams = new URLSearchParams(request.url.split('?')[1]);
+
+      const id = queryParams.get('id');
+
+      if (!id) {
+        return htmlRes('No id provided', { status: 400 });
+      }
+
+      const collectionGroups = shortcutGroup.readItemsWhere({
+        collectionId: id,
+      });
+
+      // load the shortcuts for each group
+      const groups = collectionGroups.map((group) => {
+        const shortcuts = shortcut.readItemsWhere({
+          groupId: group.id,
+        });
+
+        return {
+          group: group,
+          shortcuts: shortcuts,
+        };
+      });
+
+      // create map of group id to shortcuts, maintain typesafety
+      const groupMap: Record<
+        string,
+        { shortcut: Shortcut[]; group: ShortcutGroup }
+      > = {};
+
+      groups.forEach((group) => {
+        groupMap[group.group.id] = {
+          group: group.group,
+          shortcut: group.shortcuts,
+        };
+      });
+
+      console.log(JSON.stringify({ groupMap, groups }, null, 2));
+
+      return renderPage({
+        APP: {
+          tag: 'section',
+          cr: cc(['flex', 'flex-col', 'justify-center', 'items-center', 'p-8']),
+          children: children([
+            {
+              tag: 'h2',
+              content: 'App',
+              cr: cc(['text-3xl', 'font-bold', 'mb-4']),
+              attributes: {
+                itemprop: 'headline',
+              },
+            },
+            {
+              tag: 'ul',
+              children: children(
+                // render each key shortcut within the group
+                Object.keys(groupMap).map((groupId) => {
+                  const group = groupMap[groupId].group;
+                  const shortcuts = groupMap[groupId].shortcut;
+
+                  return {
+                    tag: 'li',
+                    children: children([
+                      {
+                        tag: 'h3',
+                        cr: cc(['text-2xl']),
+                        children: children([
+                          // span
+                          {
+                            tag: 'span',
+                            cr: cc(['mr-2']),
+                            content: group.emoji,
+                          },
+                          // h3
+                          {
+                            tag: 'span',
+                            content: group.name,
+                          },
+                        ]),
+                      },
+                      {
+                        tag: 'div',
+                        // evenly layout using grid
+                        cr: cc(['grid', 'grid-cols-6', 'gap-4']),
+                        children: children(
+                          shortcuts.map((shortcut) => ({
+                            cr: cc([
+                              'p-4',
+                              'border',
+                              'border-gray-200',
+                              'shadow-md',
+                              'rounded-md',
+                            ]),
+                            tag: 'div',
+                            children: children([
+                              {
+                                tag: 'h4',
+                                content: shortcut.keys,
+                              },
+                              {
+                                tag: 'p',
+                                content: shortcut.description,
+                              },
+                              {
+                                tag: 'hr',
+                              },
+                            ]),
+                          }))
+                        ),
+                      },
+                    ]),
+                  };
+                })
+              ),
+            },
+          ]),
+        },
+      });
+    },
+  },
+
   '/login': {
     GET: async (_, { auth }) => {
       const loginPage = () =>
