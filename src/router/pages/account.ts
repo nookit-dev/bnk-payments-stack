@@ -29,7 +29,7 @@ export const accountPage: AppRoute = async (request, mid) => {
       children: {
         titleid: {
           tag: 'h2',
-          content: userSubscription.status === 'active' ? 'Active' : 'Inactive',
+          content: userSubscription?.status === 'active' ? 'Active' : 'Inactive',
           cr: cc(['text-3xl', 'font-bold', 'mb-4']),
           attributes: {
             itemprop: 'headline',
