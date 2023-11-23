@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the repository URL
-REPO_URL="https://raw.githubusercontent.com/brandon-schabel/bun-nook-kit/main/utils/setup-scripts/payments-stack/fly-deploy-files"
+REPO_URL="https://raw.githubusercontent.com/brandon-schabel/bun-nook-kit/main/utils/setup-scripts/fly-deploy-files"
 
 # Download the files
 curl -O "$REPO_URL/.dockerignore"
