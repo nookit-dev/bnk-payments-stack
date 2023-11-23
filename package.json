@@ -7,14 +7,15 @@
     "seed-mac-common": "bun ./src/db/seeds/seed-mac-common.ts",
     "serve": "bun ./index.ts",
     "dev": "bun --hot ./index.ts",
-    "stripe-webhook": "stripe listen --forward-to localhost:3000/stripe-webhook"
+    "stripe-webhook": "stripe listen --forward-to localhost:3000/stripe-webhook",
+    "cli": "sh ./bnkit.sh"
   },
   "devDependencies": {
     "bun-types": "latest",
     "prettier": "^2.5.1"
   },
   "dependencies": {
-    "bnkit": "^0.3.8",
+    "bnkit": "latest",
     "bun": "^1.0.12",
     "stripe": "^14.2.0"
   }
