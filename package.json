@@ -8,7 +8,7 @@
     "serve": "bun ./index.ts",
     "dev": "bun --hot ./index.ts",
     "stripe-webhook": "stripe listen --forward-to localhost:3000/stripe-webhook",
-    "cli": "sh ./bnkit.sh"
+    "cli": "sh ./node_modules/bnkit/scripts/cli.sh --dir $(pwd)"
   },
   "devDependencies": {
     "bun-types": "latest",
