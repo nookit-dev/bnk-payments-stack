@@ -1,13 +1,8 @@
 import type { JsonHtmlNodeTree } from 'bnkit/htmlody';
-import {
-    cc,
-    children,
-    classRecordPlugin,
-    htmlodyBuilder,
-} from 'bnkit/htmlody';
+import { cc, children, classRecordPlugin, htmlodyBuilder } from 'bnkit/htmlody';
 import { PRICING_PLANS, PricingPlanKeys } from '../../utils/stripe/plans';
 
-const { createNode } = htmlodyBuilder([classRecordPlugin]);
+const { createNode } = htmlodyBuilder({ plugins: [classRecordPlugin] });
 
 const planCard = ({
   title,
