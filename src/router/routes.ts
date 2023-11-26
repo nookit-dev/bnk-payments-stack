@@ -1,6 +1,6 @@
 import { cc, children } from 'bnkit/htmlody';
 import { Routes } from 'bnkit/server';
-import { HttpMethod } from 'bnkit/utils/http-types';
+import { HTTPMethod } from 'bnkit/utils/http-types';
 import { hostURL, isDev } from '../config';
 import { middleware } from '../middleware';
 import { authRoutes } from './auth-routes';
@@ -9,7 +9,7 @@ import { stripeRoutes } from './stripe-routes';
 
 export const routes = {
   '/': {
-    GET: () => {
+    get: () => {
       return renderPage({
         COUNTER: {
           tag: 'section',
@@ -30,7 +30,7 @@ export const routes = {
   },
 
   '^/assets/.+': {
-    GET: (request) => {
+    get: (request) => {
       const filename = request.url.split('/assets/')[1];
       return new Response(Bun.file(`./src/assets/${filename}`).stream());
     },
@@ -39,7 +39,7 @@ export const routes = {
   ...stripeRoutes,
   //  this renders the page template along with a node to mount html from over the wire from /messages
   '/warp-test': {
-    GET: () => {
+    get: () => {
       return renderPage({
         TURBO_FRAME: msgWarp.docNodeMount({
           tag: 'h1',
@@ -51,7 +51,7 @@ export const routes = {
   // when the above route is hit, msgWarp.docNodeMount creates a request to /messasges, and  pushNode takes in
   // htmlody nodes and mounts them to the turbo-frame on the client as fully rendered html over the wire
   '/messages': {
-    GET: () =>
+    get: () =>
       msgWarp.pushNode({
         tag: 'h1',
         content: 'Over the wire what?',
@@ -70,7 +70,7 @@ if (isDev) {
     }
 
     // console.log(routes[routeKey]);
-    const routeMethods = Object.keys(routes[routeKey]) as HttpMethod[];
+    const routeMethods = Object.keys(routes[routeKey]) as HTTPMethod[];
 
     console.info(`${hostURL}${routeKey} - ${routeMethods.join(', ')}`);
   });

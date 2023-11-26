@@ -4,19 +4,19 @@
   "type": "module",
   "scripts": {
     "seed-user-stripe": "bun ./src/db/seeds/seed-user-stripe.ts",
-    "seed-mac-common": "bun ./src/db/seeds/seed-mac-common.ts",
     "serve": "bun ./index.ts",
     "dev": "bun --hot ./index.ts",
     "stripe-webhook": "stripe listen --forward-to localhost:3000/stripe-webhook",
-    "cli": "sh ./node_modules/bnkit/scripts/cli.sh --dir $(pwd)"
+    "cli": "sh ./node_modules/bnkit/scripts/cli.sh --dir $(pwd)",
+    "i": "bun i"
   },
   "devDependencies": {
     "bun-types": "latest",
     "prettier": "^2.5.1"
   },
   "dependencies": {
-    "bnkit": "latest",
-    "bun": "^1.0.12",
+    "bnkit": "^0.4.41",
+    "bun": "^1.0.14",
     "stripe": "^14.2.0"
   }
 }

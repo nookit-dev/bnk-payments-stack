@@ -29,10 +29,10 @@ const googleOAuth = oAuthFactory(googleOAuthConfig);
 
 export const authRoutes = {
   '/account': {
-    GET: AccountPage,
+    get: AccountPage,
   },
   '/login': {
-    GET: async (_, { auth }) => {
+    get: async (_, { auth }) => {
       const loginPage = () =>
         renderPage({
           LOGIN_FORM: authForm({ register: false }),
@@ -54,7 +54,7 @@ export const authRoutes = {
 
       return loginPage();
     },
-    POST: async (request) => {
+    post: async (request) => {
       try {
         const formData = await request.formData();
         const username = formData.get('username') as string;
@@ -90,7 +90,7 @@ export const authRoutes = {
     },
   },
   '/google-oauth': {
-    GET: () => {
+    get: () => {
       const authUrl = googleOAuth.initiateOAuthFlow();
 
       return new Response(null, {
@@ -100,7 +100,7 @@ export const authRoutes = {
     },
   },
   [oauthCallbackUri]: {
-    GET: async (req) => {
+    get: async (req) => {
       try {
         const host = req.headers.get('host');
         // Parse the URL and query parameters
@@ -123,7 +123,7 @@ export const authRoutes = {
     },
   },
   '/logout': {
-    POST: async () => {
+    post: async () => {
       return redirectRes('/login', {
         headers: {
           'Set-Cookie': encodeCookie('jwt', '', {

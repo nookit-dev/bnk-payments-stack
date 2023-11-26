@@ -1,9 +1,9 @@
 import { JsonTagElNode } from 'bnkit/htmlody';
-import { HttpMethod } from 'bnkit/utils/http-types';
+import { HTTPMethod } from 'bnkit/utils/http-types';
 
-const methodActionMap: Record<HttpMethod | string, string> = {
-  POST: 'to',
-  GET: 'from',
+const methodActionMap: Record<HTTPMethod | string, string> = {
+  post: 'to',
+  get: 'from',
 };
 
 export const actionButton = ({
@@ -12,7 +12,7 @@ export const actionButton = ({
   uri,
 }: {
   content?: string;
-  method?: HttpMethod;
+  method?: HTTPMethod;
   uri: string;
 }): JsonTagElNode => {
   const actionText = methodActionMap[method] || 'to';

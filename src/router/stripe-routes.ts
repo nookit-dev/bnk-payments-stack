@@ -14,15 +14,15 @@ import { stripeWebhook } from './stripe-webhook';
 
 export const stripeRoutes = {
   '/stripe-webhook': {
-    POST: async (request) => stripeWebhook(request),
+    post: async (request) => stripeWebhook(request),
   },
   '/checkout': {
-    GET: async (_, { auth }) => {
+    get: async (_, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
 
       if (user instanceof Response) return user;
 
-      const userSubscription = subscription.readItemsWhere({
+      const userSubscription = subscription.readWhere({
         userId: user.id,
       })[0];
 
@@ -59,12 +59,12 @@ export const stripeRoutes = {
     },
   },
   '/register': {
-    GET: () => {
+    get: () => {
       return renderPage({
         REGISTER_FORM: authForm({ register: true }),
       });
     },
-    POST: async (request) => {
+    post: async (request) => {
       const formData = await request.formData();
       const username = formData.get('username') as string;
       const password = formData.get('password') as string;
@@ -113,7 +113,7 @@ export const stripeRoutes = {
     },
   },
   '/create-stripe-checkout': {
-    POST: async (request, { auth }) => {
+    post: async (request, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
 
       if (user instanceof Response) return user;
@@ -124,7 +124,7 @@ export const stripeRoutes = {
     },
   },
   '/create-stripe-customer-portal': {
-    POST: async (_, { auth }) => {
+    post: async (_, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
 
       if (user instanceof Response) return user;
@@ -144,7 +144,7 @@ export const stripeRoutes = {
     },
   },
   '/create-stripe-customer': {
-    POST: async (_, { auth }) => {
+    post: async (_, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
 
       if (user instanceof Response) return user;
@@ -159,7 +159,7 @@ export const stripeRoutes = {
     },
   },
   '/plans': {
-    GET: async (_, { auth }) => {
+    get: async (_, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
 
       if (user instanceof Response) return user;
@@ -167,7 +167,7 @@ export const stripeRoutes = {
       // may want to pass in the users current plan to the plans page
       return renderPage(plansPage);
     },
-    POST: async (request, { auth }) => {
+    post: async (request, { auth }) => {
       const user = await authenticateAndRetrieveUser(auth);
 
       if (user instanceof Response) return user;
