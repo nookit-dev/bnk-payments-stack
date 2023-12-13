@@ -177,3 +177,4 @@ dist
 .history
 
 data.db
+data.sqlite

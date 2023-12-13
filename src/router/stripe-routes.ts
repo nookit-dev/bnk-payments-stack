@@ -1,6 +1,7 @@
 import { children } from "bnkit/htmlody";
 import { jsonRes, redirectRes } from "bnkit/server";
 import { subscriptions } from "~/db";
+import { authUser } from "~/utils/auth";
 import { createStripeCheckoutUrl } from "~/utils/stripe/resources/create-stripe-checkout";
 import { stripeCreateCustomerRouteResource } from "~/utils/stripe/resources/create-stripe-customer";
 import { stripeCreateCustomerPortalResource } from "~/utils/stripe/resources/create-stripe-customer-portal";
@@ -8,7 +9,7 @@ import { renderPage, tag } from "./page-builder";
 import { plansPage } from "./pages/plans";
 import { RouterTypes } from "./route-types";
 import { stripeWebhook } from "./stripe-webhook";
-import {authUser} from "~/utils/auth"
+
 export const stripeRoutes: RouterTypes = {
 	"/stripe-webhook": {
 		post: async (request) => stripeWebhook(request),

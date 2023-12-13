@@ -1,6 +1,6 @@
 import type { CRNode, JsonHtmlNodeTree } from 'bnkit/htmlody';
 import { cc, children } from 'bnkit/htmlody';
-import { layout } from '../../components/layout';
+import { layout } from '~/components/layout';
 
 export const homePage = (): JsonHtmlNodeTree<CRNode> => {
   return layout({
