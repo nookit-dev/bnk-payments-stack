@@ -36,8 +36,8 @@ export const authForm = ({ register = false }): JsonTagElNode<CRNode> => {
 
 	const result = cardComponent({
 		cardTitle: register
-			? "Create a Sendem account"
-			: "Login to your Sendem Account",
+			? "Create an account"
+			: "Login to your Account",
 		cardContent: tag.form({
 			attributes: {
 				action: register ? "/register" : "/login",
