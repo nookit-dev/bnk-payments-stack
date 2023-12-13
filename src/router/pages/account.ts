@@ -1,56 +1,90 @@
-import { cc } from 'bnkit/htmlody';
-import { Plan, plan, subscription } from '../../db/schema';
-import { authenticateAndRetrieveUser } from '../auth-utils';
-import { renderPage } from '../page-builder';
-import { AppRoute } from '../route-types';
+import { cc, children } from "bnkit/htmlody";
+import { cardComponent } from "~/components/card";
+import { heading } from "~/components/heading-text";
+import { section } from "~/components/section";
+import { plans, subscriptions } from "~/db";
+import { redirect } from "~/utils/redirect";
+import { renderPage, tag } from "../page-builder";
+import { AppRoute } from "../route-types";
+import { authUser } from "~/utils/auth";
 
-export const accountPage: AppRoute = async (request, mid) => {
-  const authRes = mid?.auth
-    ? await authenticateAndRetrieveUser(mid.auth)
-    : null;
 
-  if (authRes instanceof Response) return authRes;
+export const accountPage: AppRoute = async (_, mid) => {
+	let userId = "";
+	let userJwt = null;
+	const user = mid?.auth ? await authUser(mid.auth) : null;
 
-  const user = await mid?.auth?.verifyJwt();
-  const userId = user?.payload.userId;
+	if (user instanceof Response) return user;
 
-  const userSubscription = subscription.readById(userId || '');
+	try {
+		userJwt = await mid?.auth?.verifyJwt();
 
-  let userPlan: Plan | null = null;
+		if (!userJwt) {
+			return redirect("/login");
+		}
 
-  if (userSubscription?.status === 'active') {
-    userPlan = plan.readById(userSubscription.planId);
-  }
+		userId = userJwt?.payload?.userId || "";
+	} catch (e) {
+		console.error("Error verifying jwt", e);
+		// redirect to login
+		return redirect("/login");
+	}
 
-  return renderPage({
-    COUNTER: {
-      tag: 'section',
-      cr: cc(['flex', 'flex-col', 'justify-center', 'items-center', 'p-8']),
-      children: {
-        titleid: {
-          tag: 'h2',
-          content: userSubscription?.status === 'active' ? 'Active' : 'Inactive',
-          cr: cc(['text-3xl', 'font-bold', 'mb-4']),
-          attributes: {
-            itemprop: 'headline',
-          },
-        },
-        stripePlan: {
-          tag: 'p',
-          content: `Stripe Plan: ${userPlan?.name}`,
-          cr: cc(['text-xl', 'mb-4']),
-        },
-        raw: {
-          tag: 'pre',
-          content: JSON.stringify(
-            { user, userSubscription, userPlan },
-            null,
-            2
-          ),
-        },
-      },
-    },
-  });
+	const userSubscription = subscriptions.getById(userId || "");
 
-  // layout();
+	let userPlan = null;
+
+	if (userSubscription?.status === "active") {
+		userPlan = plans.getById(userSubscription.planId);
+	}
+
+	return renderPage(
+		section([
+			cardComponent({
+				cardContent: {
+					tag: "div",
+					child: children([
+						heading("Account", "h2"),
+						tag.p({
+							content: `Plan: ${userPlan?.name || "Free"}`,
+							cr: cc(["text-xl", "mb-4"]),
+						}),
+						tag.pre({
+							content: JSON.stringify(
+								{ user: userJwt, userSubscription, userPlan },
+								null,
+								2,
+							),
+						}),
+						{
+							tag: "form",
+							cr: cc(["flex", "justify-center", "items-center"]),
+							attributes: {
+								method: "post",
+								action: "/logout",
+							},
+							child: {
+								submit: {
+									tag: "button",
+									cr: cc([
+										"bg-red-500",
+										"text-white",
+										"font-bold",
+										"py-2",
+										"px-4",
+										"rounded",
+									]),
+									attributes: {
+										type: "submit",
+									},
+									content: "Logout",
+								},
+							},
+						},
+					]),
+				},
+			}),
+		]),
+		user,
+	);
 };

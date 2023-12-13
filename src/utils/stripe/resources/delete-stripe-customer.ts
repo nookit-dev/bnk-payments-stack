@@ -1,17 +1,27 @@
-import { User, user as userSchema } from '../../../db/schema';
-import { stripe } from '../stripe-config';
+import { users } from "~/db";
+import { stripe } from "../stripe-config";
 
-export async function deleteStripeCustomer(
-  customerId?: User['stripeCustomerId']
-) {
-  if (!customerId)
-    throw new Error('Missing required parameters to delete Stripe Customer.');
+export async function deleteStripeCustomer(customerId?: string) {
+	if (!customerId)
+		throw new Error("Missing required parameters to delete Stripe Customer.");
 
-  return stripe.customers.del(customerId);
+	return stripe.customers.del(customerId);
 }
 
-export const deleteUserResource = async (user: User) => {
-  await userSchema.deleteById(user.id);
+export const deleteUserResource = async (
+	user: ReturnType<typeof users.infer>,
+) => {
+	// Delete user from database.
+	await users.delById(user.id);
 
-  if (user.stripeCustomerId) await deleteStripeCustomer(user.stripeCustomerId);
+	// Delete Stripe Customer.
+	if (user.stripeCustomerId) await deleteStripeCustomer(user.stripeCustomerId);
+
+	// Destroy session. (log user out)
+	// let session = await getSession(request.headers.get('Cookie'));
+	// return redirect('/', {
+	//   headers: {
+	//     'Set-Cookie': await destroySession(session),
+	//   },
+	// });
 };

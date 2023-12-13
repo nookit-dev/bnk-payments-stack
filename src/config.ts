@@ -7,10 +7,8 @@ if (isDev) {
 }
 
 export const sessionSecret = Bun.env.SESSION_SECRET || '';
-
 export const stripePublicKey = Bun.env.STRIPE_PUBLIC_KEY || '';
 export const stripeSecretKey = Bun.env.STRIPE_SECRET_KEY || '';
-
 export const hostURL = Bun.env.HOST_URL || '';
 
 const config = {

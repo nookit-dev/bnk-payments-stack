@@ -17,7 +17,10 @@
     "allowJs": true,
     "types": [
       "bun-types" // add Bun global
-    ]
+    ],
+    "paths": {
+      "~/*": ["./src/*"]
+    }
   },
   "exclude": ["./.history"],
   "include": ["package.json", "./*.ts", "src/**/*"]

@@ -1,5 +1,5 @@
 import { redirectRes } from 'bnkit/server';
-import { user as userSchema } from '../db/schema';
+import { users } from '../db/schema';
 import { middleware } from '../middleware';
 
 export const authenticateAndRetrieveUser = async (
@@ -15,7 +15,7 @@ export const authenticateAndRetrieveUser = async (
   }
 
   const { userId } = jwtVerification.payload;
-  const user = userSchema.readById(userId);
+  const user = users.getById(userId);
 
   if (!user) {
     return redirectRes('/login');
